@@ -46,20 +46,28 @@ export default function HomePage() {
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <Link
-              href="/editor"
+              href="/signup"
               className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 hover:from-blue-500 hover:to-pink-500 text-white font-bold text-sm shadow-lg shadow-blue-500/25 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
             >
-              <Palette className="w-4 h-4" />
-              <span>Launch Theme Customizer Studio</span>
+              <Sparkles className="w-4 h-4" />
+              <span>Claim Handle &amp; Sign Up Free</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
 
             <Link
-              href="/user/tom"
+              href="/editor"
               className="px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-sm border border-slate-700 transition-all flex items-center gap-2"
             >
-              <span>View Tom&apos;s Public Profile</span>
-              <ExternalLink className="w-4 h-4 text-slate-400" />
+              <Palette className="w-4 h-4 text-blue-400" />
+              <span>Launch Customizer Studio</span>
+            </Link>
+
+            <Link
+              href="/user/tom"
+              className="px-5 py-3.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white font-medium text-sm border border-slate-800 transition-all flex items-center gap-2"
+            >
+              <span>Visit @tom</span>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
             </Link>
           </div>
         </div>

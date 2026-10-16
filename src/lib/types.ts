@@ -56,6 +56,8 @@ export interface UserProfile {
   songTitle: string;
   songArtist: string;
   songAudioUrl?: string;
+  mediaType?: 'retro-cassette' | 'spotify' | 'youtube' | 'audio';
+  mediaUrl?: string;
   tokens: ProfileDesignTokens;
   layout: LayoutBlock[];
   rawCss: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { UserProfile } from '@/lib/types';
 import {
   Play,
@@ -13,8 +13,11 @@ import {
   Mail,
   Disc,
   Send,
-  Sparkles
+  Sparkles,
+  Tv,
+  Music2
 } from 'lucide-react';
+import { parseYouTubeUrl, parseSpotifyUrl } from '@/lib/media-utils';
 
 interface ProfileCanvasProps {
   profile: UserProfile;
@@ -30,6 +33,7 @@ export function ProfileCanvas({
   onAddComment
 }: ProfileCanvasProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [commentAuthor, setCommentAuthor] = useState('');
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -306,67 +310,140 @@ export function ProfileCanvas({
                 {/* Media / Audio Player Block */}
                 {block.id === 'mediaPlayer' && (
                   <div className="player-cassette rounded-lg p-4 border bg-black/5">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Disc
-                          className={`w-5 h-5 text-indigo-500 ${
-                            isPlaying ? 'animate-spin' : ''
-                          }`}
+                    {/* Spotify Embed */}
+                    {profile.mediaType === 'spotify' && profile.mediaUrl && parseSpotifyUrl(profile.mediaUrl).isValid ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Music2 className="w-4 h-4 text-emerald-500" />
+                            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+                              Spotify Soundtrack
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 text-[10px] rounded font-mono bg-emerald-500/20 text-emerald-600 font-bold">
+                            SPOTIFY
+                          </span>
+                        </div>
+                        <iframe
+                          src={parseSpotifyUrl(profile.mediaUrl).embedUrl}
+                          width="100%"
+                          height="152"
+                          frameBorder="0"
+                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                          loading="lazy"
+                          className="rounded-xl shadow-sm border border-black/10"
                         />
-                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
-                          Profile Jukebox 2.0
-                        </span>
                       </div>
-                      <span className="px-2 py-0.5 text-[10px] rounded font-mono bg-emerald-500/20 text-emerald-600 font-bold">
-                        {isPlaying ? 'PLAYING' : 'READY'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        aria-label={isPlaying ? "Pause Track" : "Play Track"}
-                        className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105 active:scale-95"
-                        style={{ backgroundColor: 'var(--accent-color)' }}
-                      >
-                        {isPlaying ? (
-                          <Pause className="w-5 h-5 fill-current" />
-                        ) : (
-                          <Play className="w-5 h-5 fill-current ml-0.5" />
-                        )}
-                      </button>
-
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold truncate">
-                          {profile.songTitle || 'Such Great Heights'}
-                        </p>
-                        <p className="text-xs opacity-75 truncate">
-                          {profile.songArtist || 'The Postal Service'}
-                        </p>
-
-                        {/* Animated Equalizer Waveform */}
-                        <div className="flex items-end gap-1 h-4 mt-2">
-                          {[40, 80, 55, 95, 30, 70, 85, 50, 100, 65, 45, 90].map((h, i) => (
-                            <div
-                              key={i}
-                              className="w-1.5 rounded-t bg-blue-500/80 transition-all duration-300"
-                              style={{
-                                height: isPlaying ? `${h}%` : '20%',
-                                backgroundColor: 'var(--accent-color)'
-                              }}
+                    ) : profile.mediaType === 'youtube' && profile.mediaUrl && parseYouTubeUrl(profile.mediaUrl).isValid ? (
+                      /* YouTube Embed */
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Tv className="w-4 h-4 text-red-500" />
+                            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+                              Profile Music Video
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 text-[10px] rounded font-mono bg-red-500/20 text-red-600 font-bold">
+                            YOUTUBE
+                          </span>
+                        </div>
+                        <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden shadow-sm border border-black/10 bg-black">
+                          <iframe
+                            src={parseYouTubeUrl(profile.mediaUrl).embedUrl}
+                            className="absolute inset-0 w-full h-full"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      /* Retro Jukebox Cassette (Default) */
+                      <>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Disc
+                              className={`w-5 h-5 text-indigo-500 ${
+                                isPlaying ? 'animate-spin' : ''
+                              }`}
                             />
-                          ))}
+                            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+                              Profile Jukebox 2.0
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 text-[10px] rounded font-mono bg-emerald-500/20 text-emerald-600 font-bold">
+                            {isPlaying ? 'PLAYING' : 'READY'}
+                          </span>
                         </div>
-                      </div>
 
-                      <div className="hidden sm:flex items-center gap-1.5 opacity-60">
-                        <Volume2 className="w-4 h-4" />
-                        <div className="w-12 h-1.5 rounded-full bg-black/20 overflow-hidden">
-                          <div className="w-3/4 h-full bg-current"></div>
+                        {profile.songAudioUrl && (
+                          <audio
+                            ref={audioRef}
+                            src={profile.songAudioUrl}
+                            onEnded={() => setIsPlaying(false)}
+                            className="hidden"
+                          />
+                        )}
+
+                        <div className="flex items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (profile.songAudioUrl && audioRef.current) {
+                                if (isPlaying) {
+                                  audioRef.current.pause();
+                                  setIsPlaying(false);
+                                } else {
+                                  audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(!isPlaying));
+                                }
+                              } else {
+                                setIsPlaying(!isPlaying);
+                              }
+                            }}
+                            aria-label={isPlaying ? "Pause Track" : "Play Track"}
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105 active:scale-95"
+                            style={{ backgroundColor: 'var(--accent-color)' }}
+                          >
+                            {isPlaying ? (
+                              <Pause className="w-5 h-5 fill-current" />
+                            ) : (
+                              <Play className="w-5 h-5 fill-current ml-0.5" />
+                            )}
+                          </button>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold truncate">
+                              {profile.songTitle || 'Such Great Heights'}
+                            </p>
+                            <p className="text-xs opacity-75 truncate">
+                              {profile.songArtist || 'The Postal Service'}
+                            </p>
+
+                            {/* Animated Equalizer Waveform */}
+                            <div className="flex items-end gap-1 h-4 mt-2">
+                              {[40, 80, 55, 95, 30, 70, 85, 50, 100, 65, 45, 90].map((h, i) => (
+                                <div
+                                  key={i}
+                                  className="w-1.5 rounded-t bg-blue-500/80 transition-all duration-300"
+                                  style={{
+                                    height: isPlaying ? `${h}%` : '20%',
+                                    backgroundColor: 'var(--accent-color)'
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="hidden sm:flex items-center gap-1.5 opacity-60">
+                            <Volume2 className="w-4 h-4" />
+                            <div className="w-12 h-1.5 rounded-full bg-black/20 overflow-hidden">
+                              <div className="w-3/4 h-full bg-current"></div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      </>
+                    )}
                   </div>
                 )}
 

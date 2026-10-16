@@ -31,8 +31,12 @@ import {
   Zap,
   ArrowUp,
   ArrowDown,
-  Columns
+  Columns,
+  Disc,
+  Tv,
+  Music2
 } from 'lucide-react';
+import { parseYouTubeUrl, parseSpotifyUrl, POPULAR_RETRO_SOUNDTRACKS } from '@/lib/media-utils';
 
 interface ThemeEditorProps {
   initialProfile: UserProfile;
@@ -40,7 +44,7 @@ interface ThemeEditorProps {
 
 export function ThemeEditor({ initialProfile }: ThemeEditorProps) {
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
-  const [activeTab, setActiveTab] = useState<'tokens' | 'layout' | 'css'>('tokens');
+  const [activeTab, setActiveTab] = useState<'tokens' | 'layout' | 'media' | 'css'>('tokens');
   const [sandboxMode, setSandboxMode] = useState<'iframe' | 'shadow'>('iframe');
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
@@ -334,6 +338,19 @@ export function ThemeEditor({ initialProfile }: ThemeEditorProps) {
             >
               <Layout className="w-3.5 h-3.5 text-purple-400" />
               Layout Blocks
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('media')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-colors border-t-2 ${
+                activeTab === 'media'
+                  ? 'border-blue-500 bg-slate-800/90 text-white'
+                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              }`}
+            >
+              <Disc className="w-3.5 h-3.5 text-emerald-400" />
+              Soundtrack &amp; Media
             </button>
 
             <button
@@ -671,6 +688,216 @@ export function ThemeEditor({ initialProfile }: ThemeEditorProps) {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* TAB: SOUNDTRACK & MEDIA EMBEDS */}
+            {activeTab === 'media' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <Disc className="w-3.5 h-3.5 text-emerald-400" />
+                    Soundtrack &amp; Media Player
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Select how your profile music/video player appears to visitors.
+                  </p>
+                </div>
+
+                {/* Player Type Selector */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setProfile((prev) => ({ ...prev, mediaType: 'retro-cassette' }))}
+                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-2 ${
+                      (!profile.mediaType || profile.mediaType === 'retro-cassette')
+                        ? 'bg-blue-600/20 border-blue-500 text-white shadow-md'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Disc className="w-5 h-5 text-indigo-400" />
+                    <span className="text-xs font-bold">Retro Cassette</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setProfile((prev) => ({ ...prev, mediaType: 'spotify' }))}
+                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-2 ${
+                      profile.mediaType === 'spotify'
+                        ? 'bg-emerald-600/20 border-emerald-500 text-white shadow-md'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Music2 className="w-5 h-5 text-emerald-400" />
+                    <span className="text-xs font-bold">Spotify Track</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setProfile((prev) => ({ ...prev, mediaType: 'youtube' }))}
+                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-2 ${
+                      profile.mediaType === 'youtube'
+                        ? 'bg-red-600/20 border-red-500 text-white shadow-md'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Tv className="w-5 h-5 text-red-400" />
+                    <span className="text-xs font-bold">YouTube Video</span>
+                  </button>
+                </div>
+
+                {/* SPOTIFY CONFIG */}
+                {profile.mediaType === 'spotify' && (
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Music2 className="w-4 h-4 text-emerald-400" />
+                        Spotify URL
+                      </span>
+                      {profile.mediaUrl && parseSpotifyUrl(profile.mediaUrl).isValid ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Valid Track Link
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          Paste track or album link
+                        </span>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      placeholder="https://open.spotify.com/track/..."
+                      value={profile.mediaUrl || ''}
+                      onChange={(e) => setProfile((prev) => ({ ...prev, mediaUrl: e.target.value }))}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"
+                    />
+
+                    {/* Quick Pick Presets */}
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] text-slate-400 font-semibold">Popular Retro Picks:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {POPULAR_RETRO_SOUNDTRACKS.map((s) => (
+                          <button
+                            key={s.name}
+                            type="button"
+                            onClick={() =>
+                              setProfile((prev) => ({
+                                ...prev,
+                                mediaUrl: s.spotifyUrl,
+                                songTitle: s.name,
+                                songArtist: s.artist
+                              }))
+                            }
+                            className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700"
+                          >
+                            {s.artist} - {s.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* YOUTUBE CONFIG */}
+                {profile.mediaType === 'youtube' && (
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Tv className="w-4 h-4 text-red-400" />
+                        YouTube Video URL
+                      </span>
+                      {profile.mediaUrl && parseYouTubeUrl(profile.mediaUrl).isValid ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Valid Video Detected
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          Paste youtube.com or youtu.be link
+                        </span>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      value={profile.mediaUrl || ''}
+                      onChange={(e) => setProfile((prev) => ({ ...prev, mediaUrl: e.target.value }))}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-red-500"
+                    />
+
+                    {/* Quick Pick Presets */}
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] text-slate-400 font-semibold">Popular Music Videos:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {POPULAR_RETRO_SOUNDTRACKS.map((s) => (
+                          <button
+                            key={s.name}
+                            type="button"
+                            onClick={() =>
+                              setProfile((prev) => ({
+                                ...prev,
+                                mediaUrl: s.youtubeUrl,
+                                songTitle: s.name,
+                                songArtist: s.artist
+                              }))
+                            }
+                            className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700"
+                          >
+                            {s.artist} - {s.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* RETRO CASSETTE CONFIG */}
+                {(!profile.mediaType || profile.mediaType === 'retro-cassette') && (
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Disc className="w-4 h-4 text-indigo-400" />
+                      Retro Cassette Jukebox Track Details
+                    </span>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-400">Song Title</label>
+                        <input
+                          type="text"
+                          value={profile.songTitle || ''}
+                          onChange={(e) => setProfile((prev) => ({ ...prev, songTitle: e.target.value }))}
+                          placeholder="Song Title"
+                          className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-400">Artist</label>
+                        <input
+                          type="text"
+                          value={profile.songArtist || ''}
+                          onChange={(e) => setProfile((prev) => ({ ...prev, songArtist: e.target.value }))}
+                          placeholder="Artist Name"
+                          className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-400">Direct Audio MP3 URL (Optional)</label>
+                      <input
+                        type="url"
+                        value={profile.songAudioUrl || ''}
+                        onChange={(e) => setProfile((prev) => ({ ...prev, songAudioUrl: e.target.value }))}
+                        placeholder="https://.../song.mp3"
+                        className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono"
+                      />
+                      <p className="text-[10px] text-slate-500">
+                        Plays through HTML5 audio with real-time waveform equalizer animation when clicked.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
