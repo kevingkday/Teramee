@@ -2,7 +2,9 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "teramee",
   "compatibility_date": "2026-03-30",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "main": "worker/index.ts",
   "assets": {
     "directory": "out",
@@ -16,7 +18,7 @@
     {
       "binding": "DB",
       "database_name": "teramee-db",
-      "database_id": "teramee-db-id"
+      "database_id": "f8d14f26-64e2-4cad-afc1-4312df729673"
     }
   ]
 }
