@@ -28,7 +28,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold">
             <Sparkles className="w-4 h-4" />
-            <span>Classic MySpace Customization Meets Modern Browser Sandboxing</span>
+            <span>Teramee: Express Yourself with Custom Profiles &amp; Music</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white max-w-4xl mx-auto leading-tight">
@@ -39,8 +39,8 @@ export default function HomePage() {
           </h1>
 
           <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-            Relive the glory days of classic MySpace profile styling with full token controls,
-            modular drag-and-drop layout blocks, and power-user scoped CSS — guaranteed never to
+            Relive the glory days of expressive profile styling on Teramee with full theme token controls,
+            YouTube/Spotify media players, and power-user scoped CSS — guaranteed never to
             break the host platform or navigation bar.
           </p>
 
@@ -250,7 +250,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-        <p>SpaceMy Sandbox Proof-of-Concept &bull; Built with Next.js App Router, CSS-Tree AST & Sandboxed Iframe</p>
+        <p>Teramee &bull; <a href="https://teramee.com" className="text-slate-400 hover:text-white underline">teramee.com</a> &bull; Express Yourself</p>
       </footer>
     </div>
   );

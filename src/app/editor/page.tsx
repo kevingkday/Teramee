@@ -104,7 +104,7 @@ export default function EditorPage() {
         <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
           <div className="space-y-2 text-center">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-xs text-slate-400 font-mono">Loading SpaceMy Customizer Studio...</p>
+            <p className="text-xs text-slate-400 font-mono">Loading Teramee Customizer Studio...</p>
           </div>
         </div>
       }

@@ -198,7 +198,7 @@ export function ProfileCanvas({
             {/* Retro Action Bar */}
             <div className="w-full md:w-auto flex flex-col gap-2">
               <div className="text-[11px] px-3 py-1.5 rounded font-mono bg-black/5 border border-black/10 select-all truncate max-w-xs">
-                https://myspace.com/{profile.username}
+                https://teramee.com/user/{profile.username}
               </div>
 
               <div className="grid grid-cols-2 gap-1.5 text-xs font-semibold">
@@ -259,10 +259,15 @@ export function ProfileCanvas({
                       dangerouslySetInnerHTML={{ __html: profile.bioHtml }}
                     />
                     <div className="mt-4 pt-3 border-t text-xs opacity-80" style={{ borderColor: 'var(--border-color)' }}>
-                      <p className="font-semibold mb-1">SpaceMy URL:</p>
-                      <p className="font-mono break-all text-blue-600 underline">
-                        http://www.myspace.com/{profile.username}
-                      </p>
+                      <p className="font-semibold mb-1">Teramee URL:</p>
+                      <a
+                        href={`https://teramee.com/user/${profile.username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono break-all text-blue-600 underline hover:text-blue-700"
+                      >
+                        https://teramee.com/user/{profile.username}
+                      </a>
                     </div>
                   </>
                 )}

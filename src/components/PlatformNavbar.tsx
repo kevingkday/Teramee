@@ -65,10 +65,10 @@ export function PlatformNavbar({
             </div>
             <div>
               <span className="text-xl font-black tracking-tight bg-gradient-to-r from-blue-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
-                SpaceMy
+                Teramee
               </span>
               <span className="text-xs ml-2 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono border border-blue-500/30">
-                v2006.PRO
+                teramee.com
               </span>
             </div>
           </Link>

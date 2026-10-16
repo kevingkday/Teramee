@@ -19,11 +19,11 @@ export async function generateMetadata({ params }: PublicProfilePageProps) {
   const profile = INITIAL_PROFILES[normalized];
 
   if (!profile) {
-    return { title: `@${username} | SpaceMy Profile` };
+    return { title: `@${username} | Teramee Profile` };
   }
 
   return {
-    title: `${profile.displayName} (@${profile.username}) | SpaceMy Profile`,
+    title: `${profile.displayName} (@${profile.username}) | Teramee Profile`,
     description: profile.tagline || profile.headline || 'Customized retro user profile.'
   };
 }

@@ -327,7 +327,7 @@ export async function registerUserInDb(
     { id: 'guestbook', title: 'Friend Blurbs & Comments', column: 'right', order: 3, visible: true }
   ];
 
-  const bioHtml = `<p><b>Hi! I'm ${sanitizeUserHtml(displayName)}.</b></p><p>Welcome to my brand new SpaceMy profile! I'm currently customizing my layout and picking my soundtrack.</p><p><i>"Thanks for stopping by, leave a comment below!"</i></p>`;
+  const bioHtml = `<p><b>Hi! I'm ${sanitizeUserHtml(displayName)}.</b></p><p>Welcome to my brand new Teramee profile! I'm currently customizing my layout and picking my soundtrack.</p><p><i>"Thanks for stopping by, leave a comment below!"</i></p>`;
   const interestsHtml = `<p><b>General:</b> Retro web aesthetics, good music, discovering cool profiles</p>`;
 
   // 7. Insert profile into D1
@@ -377,7 +377,7 @@ export async function registerUserInDb(
       'Tom',
       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
       'Just now',
-      `Welcome to SpaceMy, ${displayName}! Thanks for joining. Customize your layout in the editor and don't hesitate to message me if you have any questions! :-)`,
+      `Welcome to Teramee, ${displayName}! Thanks for joining. Customize your layout in the editor and don't hesitate to message me if you have any questions! :-)`,
       now
     )
     .run();
