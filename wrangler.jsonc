@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "teramee",
+  "compatibility_date": "2026-03-30",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "main": "worker/index.ts",
+  "build": {
+    "command": "npm run build"
+  },
+  "assets": {
+    "directory": "out",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "teramee-db",
+      "database_id": "f8d14f26-64e2-4cad-afc1-4312df729673"
+    }
+  ]
+}

@@ -19,8 +19,11 @@ import {
   Check,
   Trash2,
   Lock,
-  Loader2
+  Loader2,
+  Tv,
+  Music2
 } from 'lucide-react';
+import { parseYouTubeUrl, parseSpotifyUrl } from '@/lib/media-utils';
 
 interface ProfileCanvasProps {
   profile: UserProfile;
@@ -565,6 +568,54 @@ export function ProfileCanvas({
                 {/* Media / Audio Player Block */}
                 {block.id === 'mediaPlayer' && (
                   <div className="player-cassette rounded-lg p-4 border bg-black/5">
+                    {profile.mediaType === 'spotify' && profile.mediaUrl && parseSpotifyUrl(profile.mediaUrl).isValid ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Music2 className="w-4 h-4 text-emerald-500" />
+                            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+                              Spotify Soundtrack
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 text-[10px] rounded font-mono bg-emerald-500/20 text-emerald-600 font-bold">
+                            SPOTIFY
+                          </span>
+                        </div>
+                        <iframe
+                          src={parseSpotifyUrl(profile.mediaUrl).embedUrl}
+                          width="100%"
+                          height="152"
+                          frameBorder="0"
+                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                          loading="lazy"
+                          className="rounded-xl shadow-sm border border-black/10"
+                        />
+                      </div>
+                    ) : profile.mediaType === 'youtube' && profile.mediaUrl && parseYouTubeUrl(profile.mediaUrl).isValid ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Tv className="w-4 h-4 text-red-500" />
+                            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+                              Profile Music Video
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 text-[10px] rounded font-mono bg-red-500/20 text-red-600 font-bold">
+                            YOUTUBE
+                          </span>
+                        </div>
+                        <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden shadow-sm border border-black/10 bg-black">
+                          <iframe
+                            src={parseYouTubeUrl(profile.mediaUrl).embedUrl}
+                            className="absolute inset-0 w-full h-full"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <Disc
@@ -626,6 +677,8 @@ export function ProfileCanvas({
                         </div>
                       </div>
                     </div>
+                      </>
+                    )}
                   </div>
                 )}
 

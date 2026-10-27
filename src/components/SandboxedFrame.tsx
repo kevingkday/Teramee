@@ -175,7 +175,8 @@ export function SandboxedFrame({
             src="/sandbox-frame"
             id="sandboxed-profile-iframe"
             title="Sanitized User Profile Canvas"
-            sandbox="allow-scripts allow-same-origin allow-forms"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
             className="w-full h-full min-h-[680px] border-none block"
             onLoad={() => {
               setIsFrameReady(true);
