@@ -67,3 +67,4 @@ export async function GET(request: NextRequest) {
     reason: `@${normalized} is available! Claim it below.`
   });
 }
+
