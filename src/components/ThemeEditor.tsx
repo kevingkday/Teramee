@@ -89,6 +89,41 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
   const [regPassword, setRegPassword] = useState('');
   const [regError, setRegError] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [regAvailability, setRegAvailability] = useState<{
+    checking: boolean;
+    available?: boolean;
+    reason?: string;
+  }>({ checking: false });
+
+  useEffect(() => {
+    const trimmed = regHandle.toLowerCase().trim();
+    if (!trimmed) {
+      setRegAvailability({ checking: false });
+      return;
+    }
+    if (trimmed.length < 3) {
+      setRegAvailability({
+        checking: false,
+        available: false,
+        reason: 'At least 3 characters required.'
+      });
+      return;
+    }
+    const timer = setTimeout(() => {
+      setRegAvailability({ checking: true });
+      fetch(`/api/auth/check-username?username=${encodeURIComponent(trimmed)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setRegAvailability({
+            checking: false,
+            available: !!data.available,
+            reason: data.reason
+          });
+        })
+        .catch(() => setRegAvailability({ checking: false }));
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [regHandle]);
 
   // Determine if the current authenticated user owns this profile
   const isOwner = !!currentUser && currentUser.toLowerCase() === profile.username.toLowerCase();
@@ -695,11 +730,13 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                       required
                       className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                     />
-                    <div className="flex items-center justify-between pt-1">
-                      <p className="text-[11px] text-slate-400">
-                        Default demo password: <span className="font-mono text-indigo-300 font-bold">teramee2026</span>
-                      </p>
-                    </div>
+                    {profile.username.toLowerCase() !== 'kevin' && (
+                      <div className="flex items-center justify-between pt-1">
+                        <p className="text-[11px] text-slate-400">
+                          Default demo password: <span className="font-mono text-indigo-300 font-bold">teramee2026</span>
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {loginError && (
@@ -730,19 +767,44 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
               ) : (
                 /* REGISTER NEW SPACE FORM */
                 <form onSubmit={handleRegister} className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-300">Choose Your Handle</label>
+                  <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/20 text-[11px] text-slate-300 space-y-1 leading-relaxed">
+                    <div className="font-bold text-pink-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                      <span>What is Claiming a Handle?</span>
+                    </div>
+                    <p className="text-slate-400">
+                      Claiming reserves your personal <code className="text-cyan-300 font-mono">teramee.com/user/@handle</code> URL and unlocks your own password-protected Theme Studio for custom CSS, music, and Top 8 friends.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-300">Check &amp; Choose Your Handle</label>
+                      {regAvailability.checking ? (
+                        <span className="text-[10px] font-mono text-blue-400">Checking...</span>
+                      ) : regAvailability.available === true ? (
+                        <span className="text-[10px] font-mono font-bold text-emerald-400">✓ Available!</span>
+                      ) : regAvailability.available === false ? (
+                        <span className="text-[10px] font-mono font-bold text-rose-400">✕ Unavailable</span>
+                      ) : null}
+                    </div>
                     <div className="flex items-center rounded-xl bg-slate-950 border border-slate-700 px-3 py-2 text-sm focus-within:border-pink-500">
-                      <span className="text-slate-500 font-mono mr-1">@</span>
+                      <span className="text-pink-400 font-mono font-bold mr-1 text-xs">teramee.com/@</span>
                       <input
                         type="text"
                         value={regHandle}
                         onChange={(e) => setRegHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                         placeholder="yourname"
                         required
+                        maxLength={20}
                         className="bg-transparent text-white font-mono focus:outline-none w-full text-xs"
                       />
                     </div>
+                    {regAvailability.reason && (
+                      <p className={`text-[11px] font-mono ${regAvailability.available ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {regAvailability.reason}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-1">
@@ -777,7 +839,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
 
                   <button
                     type="submit"
-                    disabled={isRegistering || !regHandle || !regPassword}
+                    disabled={isRegistering || !regHandle || !regPassword || regAvailability.available === false}
                     className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-pink-500/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {isRegistering ? (
@@ -1778,9 +1840,11 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                   required
                   className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-indigo-500"
                 />
-                <p className="text-[11px] text-slate-400">
-                  Default demo password: <span className="font-mono text-indigo-300 font-bold">teramee2026</span>
-                </p>
+                {profile.username.toLowerCase() !== 'kevin' && (
+                  <p className="text-[11px] text-slate-400">
+                    Default demo password: <span className="font-mono text-indigo-300 font-bold">teramee2026</span>
+                  </p>
+                )}
               </div>
 
               {loginError && (

@@ -342,12 +342,23 @@ export default {
 
       if (request.method === 'PUT') {
         try {
+          let targetUsername = username.toLowerCase().trim();
+          if (targetUsername === 'tom') targetUsername = 'kevin';
+
+          const authUser = getAuthenticatedUser(request);
+          if (!authUser || authUser.toLowerCase() !== targetUsername) {
+            return jsonResponse(
+              { error: `Unauthorized: You must be logged in as @${targetUsername} to save changes.` },
+              401
+            );
+          }
+
           const body = (await request.json()) as Partial<UserProfile>;
-          const existing = await getProfileFromDb(env.DB, username);
+          const existing = await getProfileFromDb(env.DB, targetUsername);
 
           if (!existing) {
             return jsonResponse(
-              { error: `Profile '@${username}' not found to update.` },
+              { error: `Profile '@${targetUsername}' not found to update.` },
               404
             );
           }

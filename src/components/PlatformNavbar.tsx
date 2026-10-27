@@ -155,7 +155,7 @@ export function PlatformNavbar({
           {/* Navigation links */}
           <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
             <Link
-              href="/editor"
+              href={currentUser ? `/editor?user=${currentUser}` : '/editor?user=glitterqueen99'}
               className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
                 pathname.startsWith('/editor')
                   ? 'bg-blue-600 text-white shadow-sm'
@@ -303,7 +303,7 @@ export function PlatformNavbar({
               </button>
 
               <Link
-                href="/editor?new=true"
+                href="/signup"
                 className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-pink-500 to-indigo-500 hover:from-pink-400 hover:to-indigo-400 text-white shadow-sm shadow-pink-500/20 transition-all hover:scale-105"
               >
                 Claim Handle
@@ -374,17 +374,6 @@ export function PlatformNavbar({
                   <button
                     type="button"
                     onClick={() => {
-                      setLoginHandle('kevin');
-                      setLoginPassword('teramee2026');
-                      setLoginError('');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-mono font-semibold transition-colors cursor-pointer"
-                  >
-                    @kevin (Default)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
                       setLoginHandle('glitterqueen99');
                       setLoginPassword('teramee2026');
                       setLoginError('');
@@ -449,7 +438,7 @@ export function PlatformNavbar({
                     type="text"
                     value={loginHandle}
                     onChange={(e) => setLoginHandle(e.target.value)}
-                    placeholder="kevin"
+                    placeholder="glitterqueen99"
                     required
                     className="bg-transparent text-white font-mono focus:outline-none w-full text-xs"
                   />
@@ -496,7 +485,7 @@ export function PlatformNavbar({
               <div className="pt-2 border-t border-slate-800 text-center text-xs text-slate-400">
                 <span>Don&apos;t have a profile yet? </span>
                 <Link
-                  href="/editor?new=true"
+                  href="/signup"
                   onClick={() => setShowLoginModal(false)}
                   className="text-pink-400 hover:text-pink-300 font-bold underline"
                 >

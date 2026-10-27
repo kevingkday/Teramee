@@ -151,19 +151,29 @@ export function UserProfileView({ initialProfile, username }: UserProfileViewPro
           </Link>
         ) : (
           <div className="flex items-center gap-2">
+            {profile.username.toLowerCase() !== 'kevin' ? (
+              <Link
+                href={`/editor?user=${profile.username}`}
+                className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium transition-colors border border-slate-700"
+              >
+                <Lock className="w-3 h-3 text-slate-400" />
+                <span>Owner Login</span>
+              </Link>
+            ) : (
+              <Link
+                href="/editor?user=glitterqueen99"
+                className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium transition-colors border border-slate-700"
+              >
+                <Palette className="w-3 h-3 text-pink-400" />
+                <span>Try Demo Studio</span>
+              </Link>
+            )}
             <Link
-              href={`/editor?user=${profile.username}`}
-              className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium transition-colors border border-slate-700"
-            >
-              <Lock className="w-3 h-3 text-slate-400" />
-              <span>Owner Login</span>
-            </Link>
-            <Link
-              href="/editor?new=true"
+              href="/signup"
               className="flex items-center gap-1.5 px-3 py-1 rounded bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white font-semibold shadow-sm transition-all"
             >
               <Palette className="w-3.5 h-3.5" />
-              <span>Build Your Own</span>
+              <span>Claim Your Handle</span>
             </Link>
           </div>
         )}

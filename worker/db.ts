@@ -426,23 +426,27 @@ export async function checkUsernameAvailability(
   username: string
 ): Promise<{ available: boolean; normalized: string; reason?: string }> {
   const normalized = username.toLowerCase().trim();
-  if (!normalized || normalized.length < 2) {
-    return { available: false, normalized, reason: 'Username must be at least 2 characters.' };
+  if (!normalized || normalized.length < 3) {
+    return { available: false, normalized, reason: 'Handle must be at least 3 characters.' };
   }
   if (normalized.length > 24) {
-    return { available: false, normalized, reason: 'Username cannot exceed 24 characters.' };
+    return { available: false, normalized, reason: 'Handle cannot exceed 24 characters.' };
   }
-  if (!/^[a-z0-9_.-]+$/.test(normalized)) {
+  if (!/^[a-z0-9_]+$/.test(normalized)) {
     return {
       available: false,
       normalized,
-      reason: 'Username can only contain letters, numbers, underscores, dots, and hyphens.'
+      reason: 'Only letters, numbers, and underscores are allowed.'
     };
   }
 
-  const reserved = ['admin', 'api', 'editor', 'login', 'signup', 'user', 'sandbox-frame', 'settings', 'technology'];
+  const reserved = ['admin', 'api', 'editor', 'login', 'signup', 'user', 'sandbox-frame', 'settings', 'technology', 'teramee', 'root', 'support'];
   if (reserved.includes(normalized)) {
-    return { available: false, normalized, reason: 'This handle is reserved by the platform.' };
+    return { available: false, normalized, reason: `@${normalized} is a reserved platform handle.` };
+  }
+
+  if (INITIAL_PROFILES[normalized]) {
+    return { available: false, normalized, reason: `@${normalized} is already claimed by another member.` };
   }
 
   const existing = await db
@@ -451,10 +455,10 @@ export async function checkUsernameAvailability(
     .first<{ username: string }>();
 
   if (existing) {
-    return { available: false, normalized, reason: 'This handle is already claimed.' };
+    return { available: false, normalized, reason: `@${normalized} is already claimed by another member.` };
   }
 
-  return { available: true, normalized };
+  return { available: true, normalized, reason: `@${normalized} is available! Claim it below.` };
 }
 
 export async function registerUserInDb(

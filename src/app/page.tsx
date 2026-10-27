@@ -198,9 +198,9 @@ export default function HomePage() {
     e.preventDefault();
     const cleanHandle = handleInput.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
     if (cleanHandle) {
-      router.push(`/editor?user=${cleanHandle}`);
+      router.push(`/signup?handle=${encodeURIComponent(cleanHandle)}`);
     } else {
-      router.push('/editor');
+      router.push('/signup');
     }
   };
 
@@ -487,7 +487,7 @@ export default function HomePage() {
 
                   <div className="mt-4 flex gap-2">
                     <Link
-                      href={`/editor?theme=${currentTheme.id}`}
+                      href={`/editor?user=glitterqueen99&theme=${currentTheme.id}`}
                       className="flex-1 py-2 px-3 rounded-lg text-xs font-bold text-center text-white shadow-sm flex items-center justify-center gap-1 transition-transform hover:scale-105"
                       style={{ backgroundColor: currentTheme.headerColor }}
                     >
@@ -833,7 +833,7 @@ export default function HomePage() {
               </h2>
             </div>
             <Link
-              href="/editor"
+              href="/editor?user=glitterqueen99"
               className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
             >
               Open Theme Studio &rarr;
@@ -868,10 +868,10 @@ export default function HomePage() {
                     View Profile
                   </Link>
                   <Link
-                    href="/editor?user=kevin"
+                    href="/signup"
                     className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
                   >
-                    Remix Theme
+                    Claim Your Handle
                   </Link>
                 </div>
               </div>
@@ -939,7 +939,7 @@ export default function HomePage() {
 
           <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
             <Link
-              href="/editor?new=true"
+              href="/signup"
               className="px-8 py-4 rounded-xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-pink-500/25 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
             >
               <span>Build Your Profile Now</span>

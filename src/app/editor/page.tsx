@@ -1,19 +1,21 @@
 'use client';
 
 import React, { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { PlatformNavbar } from '@/components/PlatformNavbar';
 import { ThemeEditor } from '@/components/ThemeEditor';
 import { UserProfile } from '@/lib/types';
 import { INITIAL_PROFILES } from '@/lib/initial-profiles';
 
+const DEFAULT_DEMO_HANDLE = 'glitterqueen99';
+
 function createFallbackProfile(username: string): UserProfile {
-  const clean = username.toLowerCase().trim() || 'kevin';
+  const clean = username.toLowerCase().trim() || DEFAULT_DEMO_HANDLE;
   if (INITIAL_PROFILES[clean]) {
     return INITIAL_PROFILES[clean];
   }
   return {
-    ...INITIAL_PROFILES.kevin,
+    ...INITIAL_PROFILES[DEFAULT_DEMO_HANDLE],
     username: clean,
     displayName: clean.charAt(0).toUpperCase() + clean.slice(1),
     headline: `${clean} just joined Teramee!`,
@@ -24,13 +26,14 @@ function createFallbackProfile(username: string): UserProfile {
 }
 
 function EditorContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const rawUserParam = searchParams.get('user');
   const isNew = searchParams.get('new') === 'true';
 
   const initialHandle =
-    !rawUserParam || rawUserParam.toLowerCase() === 'tom'
-      ? 'kevin'
+    !rawUserParam || rawUserParam.toLowerCase() === 'tom' || rawUserParam.toLowerCase() === 'kevin'
+      ? DEFAULT_DEMO_HANDLE
       : rawUserParam.toLowerCase();
 
   const [username, setUsername] = useState<string>(initialHandle);
@@ -38,25 +41,50 @@ function EditorContent() {
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    const nextUser =
-      !rawUserParam || rawUserParam.toLowerCase() === 'tom'
-        ? null
-        : rawUserParam.toLowerCase();
+    const requested = rawUserParam ? rawUserParam.toLowerCase().trim() : null;
 
-    if (nextUser) {
-      setUsername(nextUser);
-      setProfile(createFallbackProfile(nextUser));
-    } else {
-      fetch('/api/auth/me')
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          const resolved = data?.authenticated && data?.user?.username ? data.user.username.toLowerCase() : 'kevin';
-          setUsername(resolved);
-          setProfile(createFallbackProfile(resolved));
-        })
-        .catch(() => {});
-    }
-  }, [rawUserParam]);
+    fetch('/api/auth/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const authedUser =
+          data?.authenticated && data?.user?.username
+            ? data.user.username.toLowerCase()
+            : null;
+
+        // If user clicked a legacy ?new=true link while unauthenticated, send them to the Claim Handle flow
+        if (isNew && !authedUser) {
+          router.replace('/signup');
+          return;
+        }
+
+        let resolved = DEFAULT_DEMO_HANDLE;
+        if (requested) {
+          // Protect @kevin from being loaded as a public example unless logged in as kevin
+          if ((requested === 'kevin' || requested === 'tom') && authedUser !== 'kevin') {
+            resolved = authedUser || DEFAULT_DEMO_HANDLE;
+          } else {
+            resolved = requested;
+          }
+        } else if (authedUser) {
+          resolved = authedUser;
+        }
+
+        setUsername(resolved);
+        setProfile(createFallbackProfile(resolved));
+      })
+      .catch(() => {
+        if (isNew) {
+          router.replace('/signup');
+          return;
+        }
+        const safeFallback =
+          requested && requested !== 'kevin' && requested !== 'tom'
+            ? requested
+            : DEFAULT_DEMO_HANDLE;
+        setUsername(safeFallback);
+        setProfile(createFallbackProfile(safeFallback));
+      });
+  }, [rawUserParam, isNew, router]);
 
   useEffect(() => {
     let isCancelled = false;

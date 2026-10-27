@@ -30,3 +30,4 @@ try {
     fs.renameSync(backupDir, apiDir);
   }
 }
+
