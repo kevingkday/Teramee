@@ -30,6 +30,7 @@ export interface LayoutBlock {
 export interface FriendConnection {
   id: string;
   name: string;
+  username?: string;
   avatarUrl: string;
   role: string;
   status: string;
@@ -38,9 +39,22 @@ export interface FriendConnection {
 export interface GuestbookEntry {
   id: string;
   author: string;
+  username?: string;
   avatarUrl: string;
   timestamp: string;
   contentHtml: string;
+}
+
+export interface DirectMessage {
+  id: string;
+  fromUsername: string;
+  fromDisplayName?: string;
+  fromAvatarUrl?: string;
+  toUsername: string;
+  subject: string;
+  body: string;
+  timestamp: string;
+  read: boolean;
 }
 
 export interface UserProfile {
@@ -52,6 +66,7 @@ export interface UserProfile {
   avatarUrl: string;
   bannerUrl?: string;
   bioHtml: string;
+  whoIdLikeToMeetHtml?: string;
   interestsHtml: string;
   songTitle: string;
   songArtist: string;
@@ -61,6 +76,10 @@ export interface UserProfile {
   rawCss: string;
   topFriends: FriendConnection[];
   guestbook: GuestbookEntry[];
+  friends?: string[];
+  favorites?: string[];
+  passwordHash?: string;
+  salt?: string;
   updatedAt: string;
 }
 

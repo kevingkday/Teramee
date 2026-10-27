@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getProfile, saveProfile } from '@/lib/db';
 import { sanitizeAndScopeCss } from '@/lib/sanitize-css';
 import { UserProfile } from '@/lib/types';
+import { getAuthenticatedUser, hashPassword, generateSalt } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
@@ -34,6 +35,18 @@ export async function PUT(
   const { username } = await context.params;
 
   try {
+    let targetUsername = username.toLowerCase().trim();
+    if (targetUsername === 'tom') targetUsername = 'kevin';
+
+    // Verify session authentication
+    const authUser = getAuthenticatedUser(request);
+    if (!authUser || authUser.toLowerCase() !== targetUsername) {
+      return NextResponse.json(
+        { error: `Unauthorized: You must be logged in as @${targetUsername} to save changes.` },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     if (!body || typeof body !== 'object') {
@@ -43,19 +56,29 @@ export async function PUT(
       );
     }
 
-    const existing = getProfile(username);
+    const existing = getProfile(targetUsername);
     if (!existing) {
       return NextResponse.json(
-        { error: `Profile '@${username}' not found to update.` },
+        { error: `Profile '@${targetUsername}' not found to update.` },
         { status: 404 }
       );
+    }
+
+    // Optional password update
+    let passwordHash = existing.passwordHash;
+    let salt = existing.salt;
+    if (body.newPassword && typeof body.newPassword === 'string' && body.newPassword.trim().length >= 4) {
+      salt = generateSalt();
+      passwordHash = hashPassword(body.newPassword.trim(), salt);
     }
 
     // Merge updates
     const toSave: UserProfile = {
       ...existing,
       ...body,
-      username: existing.username // Protect username identity
+      username: existing.username, // Protect username identity
+      passwordHash,
+      salt
     };
 
     const saved = saveProfile(toSave);

@@ -1,0 +1,101 @@
+[
+  {
+    "id": "m_1792644325052",
+    "fromUsername": "kevin",
+    "fromDisplayName": "Kevin",
+    "fromAvatarUrl": "https://github.com/kevingkday.png",
+    "toUsername": "alex",
+    "subject": "Re: New bass tab for Seven Nation Army",
+    "body": "Will do!",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "m_1792618506519",
+    "fromUsername": "alex",
+    "fromDisplayName": "Alex",
+    "fromAvatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80",
+    "toUsername": "kevin",
+    "subject": "Re: Checking in about the pedals",
+    "body": "Yes please bring an extra 1/4 inch cable! See you at 2pm!",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "m_1792618506411",
+    "fromUsername": "kevin",
+    "fromDisplayName": "Kevin",
+    "fromAvatarUrl": "https://github.com/kevingkday.png",
+    "toUsername": "alex",
+    "subject": "Checking in about the pedals",
+    "body": "Hey Alex! Do you need an extra patch cable for your Big Muff pedal for rehearsal?",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "m1",
+    "fromUsername": "glitterqueen99",
+    "fromDisplayName": "xX_Glitter_Star_Xx",
+    "fromAvatarUrl": "/avatars/glitterqueen.jpg",
+    "toUsername": "kevin",
+    "subject": "Rawr! Love the retro platform!",
+    "body": "OMG Kevin! Teramee is so fun! I added glitter stars to my layout and my cassette player is blasting Paramore. Add me to your Top 8? xD",
+    "timestamp": "Today at 3:15 PM",
+    "read": false
+  },
+  {
+    "id": "m2",
+    "fromUsername": "sarah",
+    "fromDisplayName": "Sarah",
+    "fromAvatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80",
+    "toUsername": "kevin",
+    "subject": "Band rehearsal Saturday",
+    "body": "Hey Kevin, let me know if you want to try out the new guitar amp this weekend! See you soon.",
+    "timestamp": "Yesterday at 8:20 PM",
+    "read": true
+  },
+  {
+    "id": "m3",
+    "fromUsername": "alex",
+    "fromDisplayName": "Alex",
+    "fromAvatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
+    "toUsername": "kevin",
+    "subject": "New bass tab for Seven Nation Army",
+    "body": "Hey dude, I figured out the alternate bridge lick for Saturday. Check it out when you have a sec!",
+    "timestamp": "Today at 1:10 PM",
+    "read": true
+  },
+  {
+    "id": "m4",
+    "fromUsername": "kevin",
+    "fromDisplayName": "Kevin",
+    "fromAvatarUrl": "https://github.com/kevingkday.png",
+    "toUsername": "sarah",
+    "subject": "Re: Band rehearsal Saturday",
+    "body": "Sounds awesome Sarah! I will bring the cables and my acoustic just in case. Coffee before at 1?",
+    "timestamp": "Today at 11:30 AM",
+    "read": false
+  },
+  {
+    "id": "m5",
+    "fromUsername": "vampirekitten",
+    "fromDisplayName": "VampireKitten",
+    "fromAvatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+    "toUsername": "glitterqueen99",
+    "subject": "OMG mall trip Friday???",
+    "body": "Hot Topic has new studded belts and black eyeliner pens on sale 2 for 1! We HAVE to go after class! Rawrrr <3",
+    "timestamp": "Today at 2:45 PM",
+    "read": false
+  },
+  {
+    "id": "m6",
+    "fromUsername": "maya",
+    "fromDisplayName": "Maya",
+    "fromAvatarUrl": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80",
+    "toUsername": "kevin",
+    "subject": "New sticker designs ready!",
+    "body": "Hey Kevin! Just finished drawing the pixel icons for the music cassette widget. Let me know what you think!",
+    "timestamp": "Today at 2:10 PM",
+    "read": false
+  }
+]

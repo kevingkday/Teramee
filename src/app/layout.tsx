@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'SpaceMy | Scoped User Profile Sandbox',
-  description: 'Classic MySpace-inspired profile styling and layout sandboxing system.',
+  title: 'Teramee | Your Space, Your Sound, Your Rules',
+  description: 'The modern expressive social web. Customize your digital space with custom CSS, music players, Top 8 connections, and retro aesthetics with bulletproof sandboxing.',
 };
 
 export default function RootLayout({

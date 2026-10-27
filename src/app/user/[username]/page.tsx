@@ -1,11 +1,13 @@
 import React from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { getProfile } from '@/lib/db';
 import { sanitizeAndScopeCss } from '@/lib/sanitize-css';
 import { PlatformNavbar } from '@/components/PlatformNavbar';
 import { ProfileCanvas } from '@/components/ProfileCanvas';
+import { verifySessionToken, AUTH_COOKIE_NAME } from '@/lib/auth';
 import Link from 'next/link';
-import { Palette, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Palette, ShieldCheck, ArrowLeft, Lock } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,24 +17,30 @@ interface PublicProfilePageProps {
 
 export async function generateMetadata({ params }: PublicProfilePageProps) {
   const { username } = await params;
+  if (username.toLowerCase() === 'tom') {
+    redirect('/user/kevin');
+  }
   const profile = getProfile(username);
   if (!profile) {
-    return { title: 'User Not Found | SpaceMy' };
+    return { title: 'User Not Found | Teramee' };
   }
   return {
-    title: `${profile.displayName} (@${profile.username}) | SpaceMy Profile`,
+    title: `${profile.displayName} (@${profile.username}) | Teramee`,
     description: profile.tagline || profile.headline || 'Customized retro user profile.'
   };
 }
 
 export default async function PublicProfilePage({ params }: PublicProfilePageProps) {
   const { username } = await params;
+  if (username.toLowerCase() === 'tom') {
+    redirect('/user/kevin');
+  }
   const profile = getProfile(username);
 
   if (!profile) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col">
-        <PlatformNavbar currentUsername="tom" />
+        <PlatformNavbar currentUsername="kevin" />
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
             <span className="text-3xl">🛸</span>
@@ -42,16 +50,22 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
             The profile &ldquo;@{username}&rdquo; does not exist or may have been deleted into cyberspace.
           </p>
           <Link
-            href="/user/tom"
+            href="/user/kevin"
             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-2 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Visit Tom&apos;s Profile (Everyone&apos;s Friend)
+            Visit Kevin&apos;s Profile (Everyone&apos;s Friend)
           </Link>
         </div>
       </div>
     );
   }
+
+  // Check if current visitor owns this profile
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+  const authUser = sessionToken ? verifySessionToken(sessionToken) : null;
+  const isOwner = authUser?.toLowerCase() === profile.username.toLowerCase();
 
   // Server-side CSS sanitization and containment scoping
   const cssResult = sanitizeAndScopeCss(profile.rawCss || '');
@@ -74,13 +88,32 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
           </span>
         </div>
 
-        <Link
-          href={`/editor?user=${profile.username}`}
-          className="flex items-center gap-1.5 px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-colors"
-        >
-          <Palette className="w-3.5 h-3.5" />
-          <span>Customize Profile</span>
-        </Link>
+        {isOwner ? (
+          <Link
+            href={`/editor?user=${profile.username}`}
+            className="flex items-center gap-1.5 px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-colors cursor-pointer"
+          >
+            <Palette className="w-3.5 h-3.5" />
+            <span>Edit My Profile</span>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/editor?user=${profile.username}`}
+              className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium transition-colors border border-slate-700"
+            >
+              <Lock className="w-3 h-3 text-slate-400" />
+              <span>Owner Login</span>
+            </Link>
+            <Link
+              href="/editor?new=true"
+              className="flex items-center gap-1.5 px-3 py-1 rounded bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white font-semibold shadow-sm transition-all"
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span>Build Your Own</span>
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Sandboxed Profile Canvas Container */}

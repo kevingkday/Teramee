@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { createPortal } from 'react-dom';
 import { UserProfile } from '@/lib/types';
 import {
   Play,
@@ -13,7 +15,11 @@ import {
   Mail,
   Disc,
   Send,
-  Sparkles
+  Sparkles,
+  Check,
+  Trash2,
+  Lock,
+  Loader2
 } from 'lucide-react';
 
 interface ProfileCanvasProps {
@@ -34,6 +40,192 @@ export function ProfileCanvas({
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localComments, setLocalComments] = useState(profile.guestbook || []);
+
+  // User session state
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [currentDisplayName, setCurrentDisplayName] = useState<string>('');
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string>('');
+
+  // Social interactions state
+  const [isFriend, setIsFriend] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isTogglingFriend, setIsTogglingFriend] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+
+  // Send Direct Message modal state
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [msgSubject, setMsgSubject] = useState(`Hey ${profile.displayName}!`);
+  const [msgBody, setMsgBody] = useState('');
+  const [isSendingMsg, setIsSendingMsg] = useState(false);
+
+  // Toast notification state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3200);
+  };
+
+  // Check auth and initial friendship/favorite status
+  useEffect(() => {
+    setMounted(true);
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          setCurrentUser(data.user.username);
+          setCurrentDisplayName(data.user.displayName || data.user.username);
+          setCurrentAvatarUrl(data.user.avatarUrl || '');
+          setCommentAuthor(data.user.displayName || data.user.username);
+        }
+      })
+      .catch(() => {});
+
+    fetch(`/api/profiles/${profile.username}/friend`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && typeof data.isFriend === 'boolean') {
+          setIsFriend(data.isFriend);
+        }
+      })
+      .catch(() => {});
+
+    fetch(`/api/profiles/${profile.username}/favorite`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && typeof data.isFavorite === 'boolean') {
+          setIsFavorite(data.isFavorite);
+        }
+      })
+      .catch(() => {});
+  }, [profile.username]);
+
+  const handleToggleFriend = async () => {
+    if (!currentUser) {
+      showToast('Please log in or claim a profile to add friends!', 'info');
+      return;
+    }
+    if (currentUser.toLowerCase() === profile.username.toLowerCase()) {
+      showToast('You are looking at your own profile :-)', 'info');
+      return;
+    }
+
+    setIsTogglingFriend(true);
+    try {
+      const res = await fetch(`/api/profiles/${profile.username}/friend`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsFriend(data.isFriend);
+        showToast(
+          data.isFriend
+            ? `Added @${profile.username} as a friend! ★`
+            : `Removed @${profile.username} from friends.`
+        );
+      } else {
+        showToast(data.error || 'Failed to update friendship.', 'error');
+      }
+    } catch {
+      showToast('Network error updating friend status.', 'error');
+    } finally {
+      setIsTogglingFriend(false);
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!currentUser) {
+      showToast('Please log in or claim a profile to save favorites!', 'info');
+      return;
+    }
+
+    setIsTogglingFavorite(true);
+    try {
+      const res = await fetch(`/api/profiles/${profile.username}/favorite`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsFavorite(data.isFavorite);
+        showToast(
+          data.isFavorite
+            ? `Added @${profile.username} to your favorites! ♥`
+            : `Removed @${profile.username} from favorites.`
+        );
+      } else {
+        showToast(data.error || 'Failed to update favorites.', 'error');
+      }
+    } catch {
+      showToast('Network error updating favorites.', 'error');
+    } finally {
+      setIsTogglingFavorite(false);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) {
+      showToast('Please log in to send private messages.', 'info');
+      return;
+    }
+    if (!msgBody.trim()) return;
+
+    setIsSendingMsg(true);
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toUsername: profile.username,
+          subject: msgSubject,
+          body: msgBody
+        })
+      });
+      if (res.ok) {
+        setShowMessageModal(false);
+        setMsgBody('');
+        showToast(`Private message delivered to @${profile.username}! ✉`);
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed to send message.', 'error');
+      }
+    } catch {
+      showToast('Network error sending message.', 'error');
+    } finally {
+      setIsSendingMsg(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('Are you sure you want to delete this comment?')) return;
+    try {
+      const res = await fetch(`/api/profiles/${profile.username}/guestbook`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commentId })
+      });
+      if (res.ok) {
+        setLocalComments((prev) => prev.filter((c) => c.id !== commentId));
+        showToast('Comment removed.');
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed to delete comment.', 'error');
+      }
+    } catch {
+      showToast('Network error deleting comment.', 'error');
+    }
+  };
+
+  const handleForward = () => {
+    const url = `https://teramee.com/user/${profile.username}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url);
+      showToast(`Copied ${url} to clipboard!`);
+    } else {
+      showToast(`Share URL: ${url}`, 'info');
+    }
+  };
 
   const tokens = profile.tokens;
 
@@ -72,29 +264,34 @@ export function ProfileCanvas({
 
     setIsSubmitting(true);
     try {
+      const author = commentAuthor.trim() || currentDisplayName || 'Anonymous Visitor';
+      const avatarUrl = currentAvatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80';
+
       if (onAddComment) {
-        await onAddComment(commentAuthor || 'Anonymous Visitor', commentText);
+        await onAddComment(author, commentText);
       } else {
-        // Direct local or API add
         const res = await fetch(`/api/profiles/${profile.username}/guestbook`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            author: commentAuthor || 'Guest Visitor',
-            content: commentText
+            author,
+            content: commentText,
+            avatarUrl,
+            username: currentUser || undefined
           })
         });
         if (res.ok) {
           const data = await res.json();
           if (data.entry) {
             setLocalComments([data.entry, ...localComments]);
+            showToast('Comment posted! ★');
           }
         }
       }
       setCommentText('');
-      setCommentAuthor('');
     } catch (err) {
       console.error('Failed to post comment', err);
+      showToast('Failed to post comment.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -194,38 +391,72 @@ export function ProfileCanvas({
             {/* Retro Action Bar */}
             <div className="w-full md:w-auto flex flex-col gap-2">
               <div className="text-[11px] px-3 py-1.5 rounded font-mono bg-black/5 border border-black/10 select-all truncate max-w-xs">
-                https://myspace.com/{profile.username}
+                https://teramee.com/user/{profile.username}
               </div>
 
               <div className="grid grid-cols-2 gap-1.5 text-xs font-semibold">
+                {/* 1. Add / Friends Button */}
                 <button
                   type="button"
-                  className="profile-btn flex items-center gap-1.5 px-3 py-1.5 rounded transition-all text-white bg-blue-600 hover:bg-blue-700 active:scale-95 shadow-sm"
-                  style={{ backgroundColor: 'var(--accent-color)' }}
+                  onClick={handleToggleFriend}
+                  disabled={isTogglingFriend}
+                  className={`profile-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded transition-all shadow-sm active:scale-95 cursor-pointer ${
+                    isFriend
+                      ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                      : 'text-white bg-blue-600 hover:bg-blue-700'
+                  }`}
+                  style={!isFriend ? { backgroundColor: 'var(--accent-color)' } : undefined}
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  Add Friend
+                  {isFriend ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-white" />
+                      <span>Friends ✓</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>{isTogglingFriend ? 'Adding...' : 'Add Friend'}</span>
+                    </>
+                  )}
                 </button>
+
+                {/* 2. Message Button */}
                 <button
                   type="button"
-                  className="profile-btn flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border border-black/20 hover:bg-black/5 active:scale-95"
+                  onClick={() => {
+                    if (!currentUser) {
+                      showToast('Please log in to send private messages!', 'info');
+                    } else {
+                      setShowMessageModal(true);
+                    }
+                  }}
+                  className="profile-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded transition-all border border-black/20 hover:bg-black/5 active:scale-95 cursor-pointer"
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  Message
+                  <span>Message</span>
                 </button>
+
+                {/* 3. Add Favorites Button */}
                 <button
                   type="button"
-                  className="profile-btn flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border border-black/20 hover:bg-black/5 active:scale-95"
+                  onClick={handleToggleFavorite}
+                  disabled={isTogglingFavorite}
+                  className={`profile-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded transition-all border border-black/20 hover:bg-black/5 active:scale-95 cursor-pointer ${
+                    isFavorite ? 'text-pink-600 font-bold bg-pink-50 border-pink-300' : ''
+                  }`}
                 >
-                  <Heart className="w-3.5 h-3.5" />
-                  Add Favorites
+                  <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-pink-600 text-pink-600' : ''}`} />
+                  <span>{isFavorite ? 'Favorited ♥' : 'Add Favorites'}</span>
                 </button>
+
+                {/* 4. Forward / Share Button */}
                 <button
                   type="button"
-                  className="profile-btn flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border border-black/20 hover:bg-black/5 active:scale-95"
+                  onClick={handleForward}
+                  className="profile-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded transition-all border border-black/20 hover:bg-black/5 active:scale-95 cursor-pointer"
                 >
                   <Share2 className="w-3.5 h-3.5" />
-                  Forward
+                  <span>Forward</span>
                 </button>
               </div>
             </div>
@@ -248,16 +479,44 @@ export function ProfileCanvas({
                       }}
                     >
                       <Sparkles className="w-4 h-4 text-amber-500" />
-                      About Me
+                      {profile.displayName}&apos;s Blurbs
                     </h2>
-                    <div
-                      className="profile-bio-content text-sm leading-relaxed space-y-2"
-                      dangerouslySetInnerHTML={{ __html: profile.bioHtml }}
-                    />
+                    <div className="space-y-4 text-sm leading-relaxed">
+                      <div>
+                        <p
+                          className="font-bold text-xs uppercase tracking-wider mb-1"
+                          style={{ color: 'var(--header-color)' }}
+                        >
+                          About me:
+                        </p>
+                        <div
+                          className="profile-bio-content space-y-2"
+                          dangerouslySetInnerHTML={{ __html: profile.bioHtml }}
+                        />
+                      </div>
+
+                      {profile.whoIdLikeToMeetHtml && (
+                        <div
+                          className="pt-3 border-t"
+                          style={{ borderColor: 'var(--border-color)' }}
+                        >
+                          <p
+                            className="font-bold text-xs uppercase tracking-wider mb-1"
+                            style={{ color: 'var(--header-color)' }}
+                          >
+                            Who I&apos;d like to meet:
+                          </p>
+                          <div
+                            className="space-y-2"
+                            dangerouslySetInnerHTML={{ __html: profile.whoIdLikeToMeetHtml }}
+                          />
+                        </div>
+                      )}
+                    </div>
                     <div className="mt-4 pt-3 border-t text-xs opacity-80" style={{ borderColor: 'var(--border-color)' }}>
-                      <p className="font-semibold mb-1">SpaceMy URL:</p>
+                      <p className="font-semibold mb-1">Teramee URL:</p>
                       <p className="font-mono break-all text-blue-600 underline">
-                        http://www.myspace.com/{profile.username}
+                        https://teramee.com/user/{profile.username}
                       </p>
                     </div>
                   </>
@@ -386,40 +645,45 @@ export function ProfileCanvas({
                     </div>
 
                     <div className="grid grid-cols-4 gap-3">
-                      {(profile.topFriends || []).slice(0, 8).map((friend, idx) => (
-                        <div
-                          key={friend.id || idx}
-                          className="friend-card flex flex-col items-center text-center group"
-                        >
-                          <div className="relative mb-1">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={friend.avatarUrl}
-                              alt={friend.name}
-                              className="w-16 h-16 sm:w-20 sm:h-20 rounded object-cover border transition-transform group-hover:scale-105 shadow-sm"
-                              style={{
-                                borderColor: 'var(--border-color)',
-                                borderRadius: 'var(--border-radius)'
-                              }}
-                            />
-                            <span
-                              className="absolute top-1 left-1 px-1.5 py-0.2 rounded text-[9px] font-bold text-white shadow-sm"
-                              style={{ backgroundColor: 'var(--accent-color)' }}
-                            >
-                              #{idx + 1}
-                            </span>
-                          </div>
-                          <span
-                            className="text-xs font-bold truncate max-w-full hover:underline cursor-pointer"
-                            style={{ color: 'var(--accent-color)' }}
+                      {(profile.topFriends || []).slice(0, 8).map((friend, idx) => {
+                        const friendHandle = friend.username || friend.name.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                        return (
+                          <Link
+                            key={friend.id || idx}
+                            href={`/user/${friendHandle}`}
+                            className="friend-card flex flex-col items-center text-center group cursor-pointer"
+                            title={`Visit ${friend.name}'s profile (@${friendHandle})`}
                           >
-                            {friend.name}
-                          </span>
-                          <span className="text-[10px] opacity-70 truncate max-w-full">
-                            {friend.role}
-                          </span>
-                        </div>
-                      ))}
+                            <div className="relative mb-1">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={friend.avatarUrl}
+                                alt={friend.name}
+                                className="w-16 h-16 sm:w-20 sm:h-20 rounded object-cover border transition-transform group-hover:scale-105 shadow-sm"
+                                style={{
+                                  borderColor: 'var(--border-color)',
+                                  borderRadius: 'var(--border-radius)'
+                                }}
+                              />
+                              <span
+                                className="absolute top-1 left-1 px-1.5 py-0.2 rounded text-[9px] font-bold text-white shadow-sm"
+                                style={{ backgroundColor: 'var(--accent-color)' }}
+                              >
+                                #{idx + 1}
+                              </span>
+                            </div>
+                            <span
+                              className="text-xs font-bold truncate max-w-full group-hover:underline"
+                              style={{ color: 'var(--accent-color)' }}
+                            >
+                              {friend.name}
+                            </span>
+                            <span className="text-[10px] opacity-70 truncate max-w-full">
+                              {friend.role}
+                            </span>
+                          </Link>
+                        );
+                      })}
                     </div>
                   </>
                 )}
@@ -497,23 +761,46 @@ export function ProfileCanvas({
                           }}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={comment.avatarUrl}
-                            alt={comment.author}
-                            className="w-10 h-10 rounded object-cover border flex-shrink-0"
-                            style={{ borderColor: 'var(--border-color)' }}
-                          />
+                          <Link
+                            href={`/user/${comment.username || comment.author.toLowerCase().replace(/[^a-z0-9_]/g, '')}`}
+                            className="flex-shrink-0"
+                            title={`Visit ${comment.author}'s profile`}
+                          >
+                            <img
+                              src={comment.avatarUrl}
+                              alt={comment.author}
+                              className="w-10 h-10 rounded object-cover border hover:opacity-80 transition-opacity"
+                              style={{ borderColor: 'var(--border-color)' }}
+                            />
+                          </Link>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <span
+                              <Link
+                                href={`/user/${comment.username || comment.author.toLowerCase().replace(/[^a-z0-9_]/g, '')}`}
                                 className="font-bold hover:underline cursor-pointer"
                                 style={{ color: 'var(--accent-color)' }}
+                                title={`Visit ${comment.author}'s profile`}
                               >
                                 {comment.author}
-                              </span>
-                              <span className="text-[10px] opacity-60">
-                                {comment.timestamp}
-                              </span>
+                              </Link>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] opacity-60">
+                                  {comment.timestamp}
+                                </span>
+                                {(currentUser && (
+                                  currentUser.toLowerCase() === profile.username.toLowerCase() ||
+                                  comment.author.toLowerCase() === (currentDisplayName || currentUser).toLowerCase()
+                                )) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteComment(comment.id)}
+                                    className="text-red-500 hover:text-red-700 opacity-70 hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
+                                    title="Delete this comment"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             <div
                               className="leading-relaxed break-words"
@@ -530,6 +817,115 @@ export function ProfileCanvas({
           </div>
         </div>
       </div>
+
+      {/* Send Private Message Modal */}
+      {showMessageModal && mounted && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowMessageModal(false);
+          }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
+        >
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-100 animate-scale my-auto">
+            {/* Titlebar */}
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-700 to-indigo-800 text-white select-none">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-blue-200" />
+                <span className="font-bold text-sm">Send Private Message</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMessageModal(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors cursor-pointer"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSendMessage} className="p-5 space-y-4">
+              {/* Recipient summary */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={profile.avatarUrl}
+                  alt={profile.displayName}
+                  className="w-12 h-12 rounded-lg object-cover border border-slate-700"
+                />
+                <div>
+                  <div className="text-xs text-slate-400">Recipient</div>
+                  <div className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <span>{profile.displayName}</span>
+                    <span className="text-xs font-mono text-indigo-400">(@{profile.username})</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-300">Subject</label>
+                <input
+                  type="text"
+                  value={msgSubject}
+                  onChange={(e) => setMsgSubject(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-300">Message Body</label>
+                <textarea
+                  rows={5}
+                  value={msgBody}
+                  onChange={(e) => setMsgBody(e.target.value)}
+                  placeholder={`Say something nice to ${profile.displayName}...`}
+                  required
+                  className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowMessageModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingMsg || !msgBody.trim()}
+                  className="px-5 py-2 text-xs font-bold text-white rounded-xl bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  {isSendingMsg ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Delivering...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Send Message</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Retro Toast Notification */}
+      {toast && mounted && createPortal(
+        <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-2xl text-xs font-semibold backdrop-blur border animate-bounce-subtle bg-slate-900/95 text-white border-slate-700">
+          {toast.type === 'success' && <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
+          {toast.type === 'info' && <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0" />}
+          {toast.type === 'error' && <Trash2 className="w-4 h-4 text-rose-400 flex-shrink-0" />}
+          <span>{toast.message}</span>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
