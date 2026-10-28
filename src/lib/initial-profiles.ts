@@ -1,4 +1,4 @@
-import { UserProfile, DirectMessage } from './types';
+import { UserProfile, DirectMessage, ActivityItem, ProfileVisitor } from './types';
 
 export const INITIAL_PROFILES: Record<string, UserProfile> = {
   "kevin": {
@@ -2154,3 +2154,305 @@ export const INITIAL_MESSAGES: DirectMessage[] = [
     "read": false
   }
 ];
+
+const SAMPLE_PHOTO_ALBUMS: Record<string, { id: string; url: string; caption: string; album: string; timestamp: string }[]> = {
+  kevin: [
+    {
+      id: 'p_kev_1',
+      url: 'https://github.com/kevingkday.png',
+      caption: 'Classic profile pic — welcome to Teramee!',
+      album: 'Default Pics',
+      timestamp: 'Oct 2006'
+    },
+    {
+      id: 'p_kev_2',
+      url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+      caption: 'Late night studio setup & vintage mics',
+      album: 'Studio & Gear',
+      timestamp: 'Sep 2006'
+    },
+    {
+      id: 'p_kev_3',
+      url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=80',
+      caption: 'Retro CRT LAN party & late-night coding',
+      album: 'Tech & Gaming',
+      timestamp: 'Aug 2006'
+    },
+    {
+      id: 'p_kev_4',
+      url: 'https://images.unsplash.com/photo-1461784121038-f088ca1e7714?w=800&auto=format&fit=crop&q=80',
+      caption: 'Vinyl crate digging on Saturday afternoon',
+      album: 'Music & Vinyl',
+      timestamp: 'Jul 2006'
+    }
+  ],
+  glitterqueen99: [
+    {
+      id: 'p_gq_1',
+      url: '/avatars/glitterqueen.jpg',
+      caption: 'xX_Glitter_Star_Xx mirror cam shot!! rawr xD',
+      album: 'Mirror Selfies',
+      timestamp: 'Today'
+    },
+    {
+      id: 'p_gq_2',
+      url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop&q=80',
+      caption: 'Neon arcade night w/ the scene squad <3',
+      album: 'Mall & Arcade',
+      timestamp: 'Yesterday'
+    },
+    {
+      id: 'p_gq_3',
+      url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=80',
+      caption: 'Front row at Warped Tour!! Best night ever!!',
+      album: 'Warped Tour 07',
+      timestamp: 'Last Week'
+    },
+    {
+      id: 'p_gq_4',
+      url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=80',
+      caption: 'Sparkles, glowsticks & Paramore encore ★',
+      album: 'Warped Tour 07',
+      timestamp: 'Last Week'
+    }
+  ],
+  sarah: [
+    {
+      id: 'p_sar_1',
+      url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&auto=format&fit=crop&q=80',
+      caption: 'Golden hour 35mm film test roll',
+      album: '35mm Film Roll',
+      timestamp: 'Oct 2006'
+    },
+    {
+      id: 'p_sar_2',
+      url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+      caption: 'Acoustic coffeehouse open mic night',
+      album: 'Shows & Coffee',
+      timestamp: 'Sep 2006'
+    },
+    {
+      id: 'p_sar_3',
+      url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&auto=format&fit=crop&q=80',
+      caption: 'Writing lyrics at the corner cafe',
+      album: 'Shows & Coffee',
+      timestamp: 'Aug 2006'
+    }
+  ],
+  alex: [
+    {
+      id: 'p_alx_1',
+      url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=80',
+      caption: 'Backstage before the basement set',
+      album: 'Garage Band',
+      timestamp: 'Oct 2006'
+    },
+    {
+      id: 'p_alx_2',
+      url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+      caption: 'Fender P-Bass & pedalboard setup',
+      album: 'Garage Band',
+      timestamp: 'Sep 2006'
+    },
+    {
+      id: 'p_alx_3',
+      url: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&auto=format&fit=crop&q=80',
+      caption: 'Friday night show at The Echo!',
+      album: 'Live Shows',
+      timestamp: 'Aug 2006'
+    }
+  ]
+};
+
+for (const [handle, prof] of Object.entries(INITIAL_PROFILES)) {
+  if (!prof.photos || prof.photos.length === 0) {
+    prof.photos = SAMPLE_PHOTO_ALBUMS[handle] || [
+      {
+        id: `p_${handle}_1`,
+        url: prof.avatarUrl,
+        caption: `${prof.displayName}'s profile snapshot`,
+        album: 'My Pics',
+        timestamp: '2006'
+      },
+      {
+        id: `p_${handle}_2`,
+        url: prof.bannerUrl || 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&auto=format&fit=crop&q=80',
+        caption: `Vibes & aesthetics — ${prof.mood}`,
+        album: 'My Pics',
+        timestamp: '2006'
+      }
+    ];
+  }
+  if (prof.layout && !prof.layout.some((b) => b.id === 'photos')) {
+    prof.layout.push({
+      id: 'photos',
+      title: 'My Pics & Polaroids',
+      column: 'left',
+      order: 2,
+      visible: true
+    });
+  }
+  if (prof.layout && !prof.layout.some((b) => b.id === 'recentVisitors')) {
+    prof.layout.push({
+      id: 'recentVisitors',
+      title: 'Recent Visitors',
+      column: 'left',
+      order: 4,
+      visible: true
+    });
+  }
+}
+
+export const INITIAL_ACTIVITIES: ActivityItem[] = [
+  {
+    id: 'act_seed_1',
+    actorUsername: 'glitterqueen99',
+    actorDisplayName: 'xX_Glitter_Star_Xx',
+    actorAvatarUrl: '/avatars/glitterqueen.jpg',
+    targetUsername: null,
+    actionType: 'SONG_CHANGED',
+    summary: "updated their profile track to 'Misery Business' by Paramore",
+    metadata: { songTitle: 'Misery Business', songArtist: 'Paramore' },
+    createdAt: new Date(Date.now() - 4 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'act_seed_2',
+    actorUsername: 'sarah',
+    actorDisplayName: 'Sarah',
+    actorAvatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    targetUsername: 'kevin',
+    actionType: 'GUESTBOOK_SIGNED',
+    summary: 'signed the guestbook wall on @kevin',
+    metadata: { snippet: 'Thanks for the add Kevin!! Love your new profile background!' },
+    createdAt: new Date(Date.now() - 18 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'act_seed_3',
+    actorUsername: 'alex',
+    actorDisplayName: 'Alex',
+    actorAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    targetUsername: null,
+    actionType: 'MOOD_UPDATED',
+    summary: "updated their current mood to 'jamming 🎸'",
+    metadata: { mood: 'jamming 🎸' },
+    createdAt: new Date(Date.now() - 42 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'act_seed_4',
+    actorUsername: 'vampirekitten',
+    actorDisplayName: 'VampireKitten',
+    actorAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    targetUsername: 'glitterqueen99',
+    actionType: 'GUESTBOOK_SIGNED',
+    summary: 'signed the guestbook wall on @glitterqueen99',
+    metadata: { snippet: 'PC4PC bestie!! Your neon border is everything <3' },
+    createdAt: new Date(Date.now() - 75 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'act_seed_5',
+    actorUsername: 'maya',
+    actorDisplayName: 'Maya',
+    actorAvatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80',
+    targetUsername: null,
+    actionType: 'PROFILE_UPDATED',
+    summary: 'customized their profile layout and scoped CSS theme',
+    metadata: {},
+    createdAt: new Date(Date.now() - 130 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'act_seed_6',
+    actorUsername: 'kevin',
+    actorDisplayName: 'Kevin',
+    actorAvatarUrl: 'https://github.com/kevingkday.png',
+    targetUsername: null,
+    actionType: 'TOP_FRIENDS_CHANGED',
+    summary: 'rearranged their Top 8 Friends squad',
+    metadata: {},
+    createdAt: new Date(Date.now() - 210 * 60 * 1000).toISOString()
+  }
+];
+
+export const INITIAL_PROFILE_VIEWS: ProfileVisitor[] = [
+  {
+    id: 'pv_seed_1',
+    profileUsername: 'kevin',
+    viewerUsername: 'sarah',
+    viewerDisplayName: 'Sarah',
+    viewerAvatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    viewedAt: new Date(Date.now() - 8 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'pv_seed_2',
+    profileUsername: 'kevin',
+    viewerUsername: 'glitterqueen99',
+    viewerDisplayName: 'xX_Glitter_Star_Xx',
+    viewerAvatarUrl: '/avatars/glitterqueen.jpg',
+    viewedAt: new Date(Date.now() - 24 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'pv_seed_3',
+    profileUsername: 'kevin',
+    viewerUsername: 'alex',
+    viewerDisplayName: 'Alex',
+    viewerAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    viewedAt: new Date(Date.now() - 51 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'pv_seed_4',
+    profileUsername: 'kevin',
+    viewerUsername: 'maya',
+    viewerDisplayName: 'Maya',
+    viewerAvatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80',
+    viewedAt: new Date(Date.now() - 95 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'pv_seed_5',
+    profileUsername: 'kevin',
+    viewerUsername: 'vampirekitten',
+    viewerDisplayName: 'VampireKitten',
+    viewerAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    viewedAt: new Date(Date.now() - 140 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'pv_seed_6',
+    profileUsername: 'kevin',
+    viewerUsername: 'jordan',
+    viewerDisplayName: 'Jordan',
+    viewerAvatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+    viewedAt: new Date(Date.now() - 200 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'pv_seed_7',
+    profileUsername: 'glitterqueen99',
+    viewerUsername: 'vampirekitten',
+    viewerDisplayName: 'VampireKitten',
+    viewerAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    viewedAt: new Date(Date.now() - 12 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'pv_seed_8',
+    profileUsername: 'glitterqueen99',
+    viewerUsername: 'pixeldoll',
+    viewerDisplayName: 'PixelDoll',
+    viewerAvatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    viewedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'pv_seed_9',
+    profileUsername: 'glitterqueen99',
+    viewerUsername: 'cybergoth',
+    viewerDisplayName: 'CyberGoth',
+    viewerAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    viewedAt: new Date(Date.now() - 62 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'pv_seed_10',
+    profileUsername: 'glitterqueen99',
+    viewerUsername: 'kevin',
+    viewerDisplayName: 'Kevin',
+    viewerAvatarUrl: 'https://github.com/kevingkday.png',
+    viewedAt: new Date(Date.now() - 110 * 60 * 1000).toISOString()
+  }
+];
+
+

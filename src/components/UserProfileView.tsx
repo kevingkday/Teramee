@@ -46,7 +46,18 @@ export function UserProfileView({ initialProfile, username }: UserProfileViewPro
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!isCancelled && data?.authenticated && data?.user?.username) {
-          setAuthUser(data.user.username);
+          const viewer = data.user.username;
+          setAuthUser(viewer);
+          if (viewer.toLowerCase() !== effectiveUsername.toLowerCase()) {
+            fetch(`/api/profiles/${encodeURIComponent(effectiveUsername)}/view`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                viewerUsername: viewer,
+                viewerAvatarUrl: data.user.avatarUrl || ''
+              })
+            }).catch(() => {});
+          }
         }
       })
       .catch(() => {});

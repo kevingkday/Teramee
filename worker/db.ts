@@ -1,9 +1,22 @@
 // Database operations for Cloudflare D1
-import { UserProfile, GuestbookEntry, DirectMessage } from '../src/lib/types';
-import { D1Database } from './schema';
+import {
+  UserProfile,
+  GuestbookEntry,
+  DirectMessage,
+  ActivityItem,
+  ActivityActionType,
+  ProfileVisitor
+} from '../src/lib/types';
+import { D1Database, ensureSchema } from './schema';
 import { sanitizeUserHtml } from '../src/lib/sanitize-html';
 import { THEME_PRESETS } from '../src/lib/presets';
-import { INITIAL_PROFILES } from '../src/lib/initial-profiles';
+import {
+  INITIAL_PROFILES,
+  INITIAL_ACTIVITIES,
+  INITIAL_PROFILE_VIEWS
+} from '../src/lib/initial-profiles';
+
+export { ensureSchema };
 
 interface ProfileRow {
   username: string;
@@ -25,6 +38,7 @@ interface ProfileRow {
   layout_json: string;
   raw_css: string;
   top_friends_json: string;
+  photos_json?: string;
   friends_json?: string;
   favorites_json?: string;
   password_hash?: string;
@@ -88,6 +102,22 @@ export async function getProfileFromDb(
   }));
 
   try {
+    const parsedLayout = JSON.parse(profileRow.layout_json || '[]');
+    if (Array.isArray(parsedLayout) && !parsedLayout.some((b: { id?: string }) => b.id === 'photos')) {
+      parsedLayout.push({
+        id: 'photos',
+        title: 'My Pics & Polaroids',
+        column: 'left',
+        order: 2,
+        visible: true
+      });
+    }
+    const parsedPhotos = JSON.parse(profileRow.photos_json || '[]');
+    const finalPhotos =
+      Array.isArray(parsedPhotos) && parsedPhotos.length > 0
+        ? parsedPhotos
+        : INITIAL_PROFILES[normalized]?.photos || [];
+
     return {
       username: profileRow.username,
       displayName: profileRow.display_name,
@@ -105,9 +135,10 @@ export async function getProfileFromDb(
       mediaType: (profileRow.media_type as 'retro-cassette' | 'spotify' | 'youtube' | 'audio') || 'retro-cassette',
       mediaUrl: profileRow.media_url || '',
       tokens: JSON.parse(profileRow.tokens_json || '{}'),
-      layout: JSON.parse(profileRow.layout_json || '[]'),
+      layout: parsedLayout,
       rawCss: profileRow.raw_css || '',
       topFriends: JSON.parse(profileRow.top_friends_json || '[]'),
+      photos: finalPhotos,
       friends: JSON.parse(profileRow.friends_json || '[]'),
       favorites: JSON.parse(profileRow.favorites_json || '[]'),
       guestbook,
@@ -139,9 +170,9 @@ export async function saveProfileToDb(
         avatar_url, banner_url, bio_html, who_id_like_to_meet_html, interests_html,
         song_title, song_artist, song_audio_url,
         media_type, media_url,
-        tokens_json, layout_json, raw_css, top_friends_json,
+        tokens_json, layout_json, raw_css, top_friends_json, photos_json,
         friends_json, favorites_json, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(username) DO UPDATE SET
         display_name = excluded.display_name,
         headline = excluded.headline,
@@ -161,6 +192,7 @@ export async function saveProfileToDb(
         layout_json = excluded.layout_json,
         raw_css = excluded.raw_css,
         top_friends_json = excluded.top_friends_json,
+        photos_json = excluded.photos_json,
         friends_json = excluded.friends_json,
         favorites_json = excluded.favorites_json,
         updated_at = excluded.updated_at
@@ -185,6 +217,7 @@ export async function saveProfileToDb(
       JSON.stringify(profile.layout),
       profile.rawCss || '',
       JSON.stringify(profile.topFriends || []),
+      JSON.stringify(profile.photos || []),
       JSON.stringify(profile.friends || []),
       JSON.stringify(profile.favorites || []),
       updatedAt
@@ -625,3 +658,281 @@ export async function getRecentProfilesFromDb(
     avatarUrl: r.avatar_url
   }));
 }
+
+interface ActivityRow {
+  id: string;
+  actor_username: string;
+  target_username: string | null;
+  action_type: ActivityActionType;
+  summary: string;
+  metadata_json: string;
+  created_at: string;
+  actor_display_name?: string;
+  actor_avatar_url?: string;
+}
+
+interface ProfileViewRow {
+  id: string;
+  profile_username: string;
+  viewer_username: string;
+  viewer_avatar_url: string;
+  viewed_at: string;
+  viewer_display_name?: string;
+}
+
+export async function createActivityInDb(
+  db: D1Database,
+  input: {
+    actorUsername: string;
+    targetUsername?: string | null;
+    actionType: ActivityActionType;
+    summary: string;
+    metadata?: Record<string, unknown>;
+  }
+): Promise<ActivityItem> {
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  const actorClean = input.actorUsername.toLowerCase().trim();
+  const targetClean = input.targetUsername ? input.targetUsername.toLowerCase().trim() : null;
+
+  await db
+    .prepare(`
+      INSERT INTO activities (
+        id, actor_username, target_username, action_type, summary, metadata_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `)
+    .bind(
+      id,
+      actorClean,
+      targetClean,
+      input.actionType,
+      input.summary,
+      JSON.stringify(input.metadata || {}),
+      createdAt
+    )
+    .run();
+
+  const actorProfile = await getProfileFromDb(db, actorClean);
+
+  return {
+    id,
+    actorUsername: actorClean,
+    actorDisplayName: actorProfile?.displayName || actorClean,
+    actorAvatarUrl: actorProfile?.avatarUrl || '',
+    targetUsername: targetClean,
+    actionType: input.actionType,
+    summary: input.summary,
+    metadata: input.metadata || {},
+    createdAt
+  };
+}
+
+export async function getGlobalFeedFromDb(
+  db: D1Database,
+  limit = 20,
+  cursor?: string,
+  actorUsername?: string
+): Promise<{ activities: ActivityItem[]; nextCursor: string | null }> {
+  const safeLimit = Math.min(Math.max(1, limit), 50);
+  let sql = `
+    SELECT
+      a.id,
+      a.actor_username,
+      a.target_username,
+      a.action_type,
+      a.summary,
+      a.metadata_json,
+      a.created_at,
+      p.display_name AS actor_display_name,
+      p.avatar_url AS actor_avatar_url
+    FROM activities a
+    LEFT JOIN profiles p ON p.username = a.actor_username
+  `;
+
+  const conditions: string[] = [];
+  const binds: unknown[] = [];
+
+  if (cursor) {
+    conditions.push('a.created_at < ?');
+    binds.push(cursor);
+  }
+  if (actorUsername) {
+    conditions.push('a.actor_username = ?');
+    binds.push(actorUsername.toLowerCase().trim());
+  }
+
+  if (conditions.length > 0) {
+    sql += ` WHERE ${conditions.join(' AND ')}`;
+  }
+
+  sql += ` ORDER BY a.created_at DESC LIMIT ?`;
+  binds.push(safeLimit);
+
+  const result = await db
+    .prepare(sql)
+    .bind(...binds)
+    .all<ActivityRow>();
+
+  const rows = result.results || [];
+  if (rows.length === 0 && !cursor && !actorUsername) {
+    return {
+      activities: INITIAL_ACTIVITIES.slice(0, safeLimit),
+      nextCursor: null
+    };
+  }
+
+  const activities: ActivityItem[] = rows.map((row) => {
+    const fallbackSeed = INITIAL_PROFILES[row.actor_username];
+    let metadata: Record<string, unknown> = {};
+    try {
+      metadata = JSON.parse(row.metadata_json || '{}');
+    } catch {
+      metadata = {};
+    }
+    return {
+      id: row.id,
+      actorUsername: row.actor_username,
+      actorDisplayName:
+        row.actor_display_name || fallbackSeed?.displayName || row.actor_username,
+      actorAvatarUrl:
+        row.actor_avatar_url ||
+        fallbackSeed?.avatarUrl ||
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+      targetUsername: row.target_username,
+      actionType: row.action_type,
+      summary: row.summary,
+      metadata,
+      createdAt: row.created_at
+    };
+  });
+
+  const nextCursor =
+    activities.length === safeLimit
+      ? activities[activities.length - 1].createdAt
+      : null;
+
+  return { activities, nextCursor };
+}
+
+export async function recordProfileViewInDb(
+  db: D1Database,
+  profileUsername: string,
+  viewerUsername: string,
+  viewerAvatarUrl?: string
+): Promise<{ recorded: boolean; reason?: string }> {
+  const profileClean =
+    profileUsername.toLowerCase().trim() === 'tom'
+      ? 'kevin'
+      : profileUsername.toLowerCase().trim();
+  const viewerClean =
+    viewerUsername.toLowerCase().trim() === 'tom'
+      ? 'kevin'
+      : viewerUsername.toLowerCase().trim();
+
+  if (!profileClean || !viewerClean || profileClean === viewerClean) {
+    return { recorded: false, reason: 'Self-view ignored.' };
+  }
+
+  const viewerProfile = await getProfileFromDb(db, viewerClean);
+  const resolvedAvatar =
+    viewerAvatarUrl ||
+    viewerProfile?.avatarUrl ||
+    INITIAL_PROFILES[viewerClean]?.avatarUrl ||
+    '';
+
+  const existing = await db
+    .prepare(
+      'SELECT id, viewed_at FROM profile_views WHERE profile_username = ? AND viewer_username = ? ORDER BY viewed_at DESC LIMIT 1'
+    )
+    .bind(profileClean, viewerClean)
+    .first<{ id: string; viewed_at: string }>();
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  if (existing) {
+    const lastViewedMs = new Date(existing.viewed_at).getTime();
+    if (!Number.isNaN(lastViewedMs) && now.getTime() - lastViewedMs < 60 * 60 * 1000) {
+      await db
+        .prepare('UPDATE profile_views SET viewed_at = ?, viewer_avatar_url = ? WHERE id = ?')
+        .bind(nowIso, resolvedAvatar, existing.id)
+        .run();
+      return { recorded: true, reason: 'Updated existing view within 1-hour window.' };
+    }
+  }
+
+  await db
+    .prepare(`
+      INSERT INTO profile_views (
+        id, profile_username, viewer_username, viewer_avatar_url, viewed_at
+      ) VALUES (?, ?, ?, ?, ?)
+    `)
+    .bind(crypto.randomUUID(), profileClean, viewerClean, resolvedAvatar, nowIso)
+    .run();
+
+  return { recorded: true };
+}
+
+export async function getRecentVisitorsFromDb(
+  db: D1Database,
+  profileUsername: string,
+  limit = 8
+): Promise<ProfileVisitor[]> {
+  const profileClean =
+    profileUsername.toLowerCase().trim() === 'tom'
+      ? 'kevin'
+      : profileUsername.toLowerCase().trim();
+
+  const result = await db
+    .prepare(`
+      SELECT
+        pv.id,
+        pv.profile_username,
+        pv.viewer_username,
+        pv.viewer_avatar_url,
+        pv.viewed_at,
+        p.display_name AS viewer_display_name,
+        p.avatar_url AS profile_avatar_url
+      FROM profile_views pv
+      LEFT JOIN profiles p ON p.username = pv.viewer_username
+      WHERE pv.profile_username = ?
+      ORDER BY pv.viewed_at DESC
+      LIMIT 40
+    `)
+    .bind(profileClean)
+    .all<ProfileViewRow & { profile_avatar_url?: string }>();
+
+  const rows = result.results || [];
+  const seen = new Set<string>();
+  const distinctVisitors: ProfileVisitor[] = [];
+
+  for (const row of rows) {
+    const viewer = row.viewer_username.toLowerCase();
+    if (viewer === profileClean || seen.has(viewer)) continue;
+    seen.add(viewer);
+    const seed = INITIAL_PROFILES[viewer];
+    distinctVisitors.push({
+      id: row.id,
+      profileUsername: row.profile_username,
+      viewerUsername: viewer,
+      viewerDisplayName: row.viewer_display_name || seed?.displayName || viewer,
+      viewerAvatarUrl:
+        row.viewer_avatar_url ||
+        row.profile_avatar_url ||
+        seed?.avatarUrl ||
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+      viewedAt: row.viewed_at
+    });
+    if (distinctVisitors.length >= limit) break;
+  }
+
+  if (distinctVisitors.length === 0) {
+    const seeded = INITIAL_PROFILE_VIEWS.filter(
+      (v) => v.profileUsername.toLowerCase() === profileClean
+    );
+    if (seeded.length > 0) return seeded.slice(0, limit);
+  }
+
+  return distinctVisitors;
+}
+

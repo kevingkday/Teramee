@@ -21,9 +21,13 @@ import {
   Lock,
   Loader2,
   Tv,
-  Music2
+  Music2,
+  Camera,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { parseYouTubeUrl, parseSpotifyUrl } from '@/lib/media-utils';
+import { RecentVisitors } from './RecentVisitors';
 
 interface ProfileCanvasProps {
   profile: UserProfile;
@@ -64,6 +68,39 @@ export function ProfileCanvas({
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  // Retro Photo Album Lightbox state
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const profilePhotos =
+    profile.photos && profile.photos.length > 0
+      ? profile.photos
+      : [
+          {
+            id: 'default_avatar_pic',
+            url: profile.avatarUrl,
+            caption: `${profile.displayName}'s profile picture`,
+            album: 'Profile Pics',
+            timestamp: '2006'
+          }
+        ];
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowRight') {
+        setLightboxIndex((prev) => (prev !== null ? (prev + 1) % profilePhotos.length : null));
+      }
+      if (e.key === 'ArrowLeft') {
+        setLightboxIndex((prev) =>
+          prev !== null ? (prev - 1 + profilePhotos.length) % profilePhotos.length : null
+        );
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, profilePhotos.length]);
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToast({ message, type });
@@ -316,14 +353,96 @@ export function ProfileCanvas({
     '--border-width': tokens.borderWidth || '1px'
   } as React.CSSProperties;
 
-  // Separate layout blocks by column
-  const leftBlocks = (profile.layout || [])
+  // Separate layout blocks by column (automatically include 'photos' and 'recentVisitors' blocks if missing from legacy layout)
+  const rawLayout = profile.layout || [];
+  const effectiveLayout = [...rawLayout];
+  if (!effectiveLayout.some((b) => b.id === 'photos')) {
+    effectiveLayout.push({
+      id: 'photos' as const,
+      title: 'My Pics & Polaroids',
+      column: 'left' as const,
+      order: 2,
+      visible: true
+    });
+  }
+  if (!effectiveLayout.some((b) => b.id === 'recentVisitors')) {
+    effectiveLayout.push({
+      id: 'recentVisitors' as const,
+      title: 'Recent Visitors',
+      column: 'left' as const,
+      order: 4,
+      visible: true
+    });
+  }
+
+  const leftBlocks = effectiveLayout
     .filter((b) => b.column === 'left' && b.visible)
     .sort((a, b) => a.order - b.order);
 
-  const rightBlocks = (profile.layout || [])
+  const rightBlocks = effectiveLayout
     .filter((b) => b.column === 'right' && b.visible)
     .sort((a, b) => a.order - b.order);
+
+  const renderPhotosBlock = (title?: string) => (
+    <div className="profile-photos-block">
+      <div
+        className="flex items-center justify-between pb-2 mb-3 border-b"
+        style={{ borderColor: 'var(--border-color)' }}
+      >
+        <h2
+          className="text-lg font-bold flex items-center gap-2"
+          style={{ color: 'var(--header-color)' }}
+        >
+          <Camera className="w-4 h-4" />
+          <span>{title || `${profile.displayName}'s Pics`}</span>
+        </h2>
+        <button
+          type="button"
+          onClick={() => setLightboxIndex(0)}
+          className="text-xs font-mono font-bold hover:underline cursor-pointer"
+          style={{ color: 'var(--accent-color)' }}
+        >
+          [View All ({profilePhotos.length})]
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {profilePhotos.slice(0, 6).map((photo, idx) => (
+          <button
+            key={photo.id || idx}
+            type="button"
+            onClick={() => setLightboxIndex(idx)}
+            className="photo-polaroid group text-left p-2 rounded bg-white/90 text-slate-900 border shadow-sm transition-all hover:scale-[1.03] hover:shadow-md cursor-pointer flex flex-col"
+            style={{
+              borderColor: 'var(--border-color)',
+              borderRadius: 'var(--border-radius)'
+            }}
+            title={photo.caption || 'Click to enlarge photo'}
+          >
+            <div className="relative w-full aspect-square overflow-hidden rounded-sm bg-slate-200 mb-1.5 border border-black/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.url}
+                alt={photo.caption || `${profile.displayName} photo ${idx + 1}`}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              {photo.album && (
+                <span
+                  className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold text-white shadow"
+                  style={{ backgroundColor: 'var(--accent-color)' }}
+                >
+                  {photo.album}
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] font-medium leading-snug line-clamp-2 text-slate-800 font-sans">
+              {photo.caption || `Pic #${idx + 1}`}
+            </p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -352,21 +471,41 @@ export function ProfileCanvas({
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
             {/* Avatar & Identifiers */}
             <div className="flex gap-4 items-center">
-              <div className="relative group">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={profile.avatarUrl}
-                  alt={profile.displayName}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg object-cover border-2 shadow-md"
-                  style={{
-                    borderColor: 'var(--border-color)',
-                    borderRadius: 'var(--border-radius)'
-                  }}
-                />
-                <span className="profile-badge absolute -bottom-2 -right-2 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-emerald-500 text-white shadow-sm flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
-                  Online
-                </span>
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  onClick={() => setLightboxIndex(0)}
+                  className="relative group cursor-pointer"
+                  title="Click to view profile photos"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.displayName}
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg object-cover border-2 shadow-md group-hover:opacity-95 transition-opacity"
+                    style={{
+                      borderColor: 'var(--border-color)',
+                      borderRadius: 'var(--border-radius)'
+                    }}
+                  />
+                  <span className="profile-badge absolute -bottom-2 -right-2 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-emerald-500 text-white shadow-sm flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                    Online
+                  </span>
+                </div>
+
+                {/* Classic MySpace "View My: Pics (X)" Link */}
+                <div className="text-[11px] font-mono flex items-center gap-1 px-2 py-0.5 rounded bg-black/10 border border-black/10">
+                  <span className="opacity-75">View My:</span>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxIndex(0)}
+                    className="font-bold underline hover:opacity-80 flex items-center gap-1 cursor-pointer"
+                    style={{ color: 'var(--accent-color)' }}
+                  >
+                    <Camera className="w-3 h-3" />
+                    <span>Pics ({profilePhotos.length})</span>
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -557,6 +696,11 @@ export function ProfileCanvas({
                     <p className="text-sm italic">{profile.tagline}</p>
                   </>
                 )}
+
+                {block.id === 'photos' && renderPhotosBlock(block.title)}
+                {block.id === 'recentVisitors' && (
+                  <RecentVisitors username={profile.username} title={block.title} />
+                )}
               </div>
             ))}
           </div>
@@ -565,6 +709,10 @@ export function ProfileCanvas({
           <div className="md:col-span-7 space-y-6">
             {rightBlocks.map((block) => (
               <div key={block.id} className="profile-card p-5 transition-all">
+                {block.id === 'photos' && renderPhotosBlock(block.title)}
+                {block.id === 'recentVisitors' && (
+                  <RecentVisitors username={profile.username} title={block.title} />
+                )}
                 {/* Media / Audio Player Block */}
                 {block.id === 'mediaPlayer' && (
                   <div className="player-cassette rounded-lg p-4 border bg-black/5">
@@ -964,6 +1112,120 @@ export function ProfileCanvas({
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Retro MySpace Photo Album Lightbox Modal */}
+      {lightboxIndex !== null && profilePhotos[lightboxIndex] && mounted && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setLightboxIndex(null);
+          }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto"
+        >
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-100 my-auto">
+            {/* Titlebar */}
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-800 via-indigo-800 to-purple-800 text-white select-none border-b border-indigo-500/30">
+              <div className="flex items-center gap-2 min-w-0">
+                <Camera className="w-4 h-4 text-pink-300 shrink-0" />
+                <span className="font-bold text-sm truncate">
+                  {profile.displayName}&apos;s Photo Album (@{profile.username})
+                </span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-black/30 text-cyan-300 shrink-0">
+                  Pic {lightboxIndex + 1} of {profilePhotos.length}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLightboxIndex(null)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors cursor-pointer shrink-0"
+                title="Close Album (Esc)"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Main Photo Viewer */}
+            <div className="relative bg-slate-950 flex items-center justify-center min-h-[280px] sm:min-h-[380px] max-h-[60vh] p-4">
+              {profilePhotos.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setLightboxIndex((lightboxIndex - 1 + profilePhotos.length) % profilePhotos.length)
+                  }
+                  className="absolute left-3 z-10 w-9 h-9 rounded-full bg-black/70 hover:bg-indigo-600 text-white border border-white/20 flex items-center justify-center transition-colors cursor-pointer shadow-lg"
+                  title="Previous Photo"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={profilePhotos[lightboxIndex].url}
+                alt={profilePhotos[lightboxIndex].caption}
+                className="max-h-[55vh] max-w-full object-contain rounded-lg border-4 border-white shadow-2xl"
+              />
+
+              {profilePhotos.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setLightboxIndex((lightboxIndex + 1) % profilePhotos.length)}
+                  className="absolute right-3 z-10 w-9 h-9 rounded-full bg-black/70 hover:bg-indigo-600 text-white border border-white/20 flex items-center justify-center transition-colors cursor-pointer shadow-lg"
+                  title="Next Photo"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Caption & Metadata Bar */}
+            <div className="p-4 bg-slate-900 border-t border-slate-800 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-white">
+                    {profilePhotos[lightboxIndex].caption || `Pic #${lightboxIndex + 1}`}
+                  </p>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+                    {profilePhotos[lightboxIndex].album && (
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        Album: {profilePhotos[lightboxIndex].album}
+                      </span>
+                    )}
+                    {profilePhotos[lightboxIndex].timestamp && (
+                      <span>Uploaded: {profilePhotos[lightboxIndex].timestamp}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Thumbnail Filmstrip */}
+              {profilePhotos.length > 1 && (
+                <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-slate-800/80 pb-1">
+                  {profilePhotos.map((thumb, idx) => (
+                    <button
+                      key={thumb.id || idx}
+                      type="button"
+                      onClick={() => setLightboxIndex(idx)}
+                      className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
+                        idx === lightboxIndex
+                          ? 'border-pink-500 scale-105 shadow-md'
+                          : 'border-slate-700 opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={thumb.url}
+                        alt={thumb.caption || `Thumb ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>,
         document.body

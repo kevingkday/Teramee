@@ -6,7 +6,8 @@ import {
   ProfileDesignTokens,
   LayoutBlock,
   SanitizedCssResult,
-  FriendConnection
+  FriendConnection,
+  ProfilePhoto
 } from '@/lib/types';
 import { THEME_PRESETS } from '@/lib/presets';
 import { sanitizeAndScopeCss } from '@/lib/sanitize-css';
@@ -46,7 +47,9 @@ import {
   ArrowRight,
   Users,
   Trash2,
-  Plus
+  Plus,
+  Camera,
+  Upload
 } from 'lucide-react';
 
 interface ThemeEditorProps {
@@ -55,8 +58,36 @@ interface ThemeEditorProps {
 }
 
 export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps) {
-  const [profile, setProfile] = useState<UserProfile>(initialProfile);
-  const [activeTab, setActiveTab] = useState<'profile' | 'tokens' | 'layout' | 'css' | 'friends'>('profile');
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    const baseLayout = Array.isArray(initialProfile.layout) ? [...initialProfile.layout] : [];
+    if (!baseLayout.some((b) => b.id === 'photos')) {
+      baseLayout.push({
+        id: 'photos',
+        title: 'My Pics & Polaroids',
+        column: 'left',
+        order: 2,
+        visible: true
+      });
+    }
+    if (!baseLayout.some((b) => b.id === 'recentVisitors')) {
+      baseLayout.push({
+        id: 'recentVisitors',
+        title: 'Recent Visitors',
+        column: 'left',
+        order: 4,
+        visible: true
+      });
+    }
+    return {
+      ...initialProfile,
+      layout: baseLayout,
+      photos: initialProfile.photos || []
+    };
+  });
+  const [activeTab, setActiveTab] = useState<'profile' | 'photos' | 'tokens' | 'layout' | 'css' | 'friends'>('profile');
+  const [newPhotoUrl, setNewPhotoUrl] = useState('');
+  const [newPhotoCaption, setNewPhotoCaption] = useState('');
+  const [newPhotoAlbum, setNewPhotoAlbum] = useState('My Pics');
   const [sandboxMode, setSandboxMode] = useState<'iframe' | 'shadow'>('iframe');
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
@@ -400,6 +431,116 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
       };
       return { ...prev, topFriends: [...list, newFriend] };
     });
+  };
+
+  // Photo Gallery Management Helpers
+  const handleAddPhotoByUrl = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!isOwner || !newPhotoUrl.trim()) return;
+    const newPhoto: ProfilePhoto = {
+      id: `pic_${Date.now()}`,
+      url: newPhotoUrl.trim(),
+      caption: newPhotoCaption.trim() || 'New snapshot ★',
+      album: newPhotoAlbum.trim() || 'My Pics',
+      timestamp: 'Just now'
+    };
+    setProfile((prev) => ({
+      ...prev,
+      photos: [newPhoto, ...(prev.photos || [])]
+    }));
+    setNewPhotoUrl('');
+    setNewPhotoCaption('');
+  };
+
+  const handleUploadPhotoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isOwner) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 720;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+          const uploadedPhoto: ProfilePhoto = {
+            id: `pic_${Date.now()}`,
+            url: compressedDataUrl,
+            caption: newPhotoCaption.trim() || cleanName || 'Uploaded Polaroid',
+            album: newPhotoAlbum.trim() || 'Camera Roll',
+            timestamp: 'Just now'
+          };
+          setProfile((prev) => ({
+            ...prev,
+            photos: [uploadedPhoto, ...(prev.photos || [])]
+          }));
+          setNewPhotoCaption('');
+        }
+      };
+      if (typeof ev.target?.result === 'string') {
+        img.src = ev.target.result;
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleUpdatePhoto = (idx: number, updates: Partial<ProfilePhoto>) => {
+    if (!isOwner) return;
+    setProfile((prev) => {
+      const list = [...(prev.photos || [])];
+      if (list[idx]) {
+        list[idx] = { ...list[idx], ...updates };
+      }
+      return { ...prev, photos: list };
+    });
+  };
+
+  const handleMovePhoto = (idx: number, direction: 'up' | 'down') => {
+    if (!isOwner) return;
+    setProfile((prev) => {
+      const list = [...(prev.photos || [])];
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= list.length) return prev;
+      const temp = list[idx];
+      list[idx] = list[targetIdx];
+      list[targetIdx] = temp;
+      return { ...prev, photos: list };
+    });
+  };
+
+  const handleDeletePhoto = (idx: number) => {
+    if (!isOwner) return;
+    setProfile((prev) => ({
+      ...prev,
+      photos: (prev.photos || []).filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleSetPhotoAsAvatar = (url: string) => {
+    if (!isOwner) return;
+    setProfile((prev) => ({
+      ...prev,
+      avatarUrl: url
+    }));
   };
 
   return (
@@ -883,6 +1024,22 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
             >
               <User className="w-3.5 h-3.5 text-emerald-400" />
               Profile &amp; Avatar
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('photos')}
+              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-t-lg transition-colors border-t-2 whitespace-nowrap cursor-pointer ${
+                activeTab === 'photos'
+                  ? 'border-blue-500 bg-slate-800/90 text-white'
+                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              }`}
+            >
+              <Camera className="w-3.5 h-3.5 text-cyan-400" />
+              My Pics
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono">
+                {(profile.photos || []).length}
+              </span>
             </button>
 
             <button
@@ -1603,6 +1760,237 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
             )}
 
             {/* TAB 4: TOP 8 FRIENDS SQUAD */}
+            {activeTab === 'photos' && (
+              <div className="space-y-5">
+                <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4">
+                  <div>
+                    <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-cyan-400" />
+                      MySpace-Style Pics &amp; Polaroid Gallery
+                    </h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                      Photos appear in your <strong className="text-slate-200">View My: Pics ({(profile.photos || []).length})</strong> lightbox under your avatar AND in your <strong className="text-slate-200">My Pics &amp; Polaroids</strong> profile block. Don&apos;t forget to click <strong className="text-emerald-400">Save Profile</strong> when done!
+                    </p>
+                  </div>
+
+                  {/* Upload from Device OR Paste Image URL */}
+                  <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Plus className="w-3.5 h-3.5 text-pink-400" />
+                        <span>Add a New Photo</span>
+                      </span>
+
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold cursor-pointer shadow-sm transition-all">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Photo from Device</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleUploadPhotoFile}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="sm:col-span-2">
+                        <label className="block text-[10px] font-mono text-slate-400 mb-1">
+                          Caption (shown under Polaroid)
+                        </label>
+                        <input
+                          type="text"
+                          value={newPhotoCaption}
+                          onChange={(e) => setNewPhotoCaption(e.target.value)}
+                          placeholder="e.g. Front row at Warped Tour '06!! xD"
+                          className="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-mono text-slate-400 mb-1">
+                          Album Tag
+                        </label>
+                        <input
+                          type="text"
+                          value={newPhotoAlbum}
+                          onChange={(e) => setNewPhotoAlbum(e.target.value)}
+                          placeholder="My Pics"
+                          className="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                      <input
+                        type="url"
+                        value={newPhotoUrl}
+                        onChange={(e) => setNewPhotoUrl(e.target.value)}
+                        placeholder="Or paste an image URL (https://...)"
+                        className="flex-1 px-2.5 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-cyan-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAddPhotoByUrl()}
+                        disabled={!newPhotoUrl.trim()}
+                        className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold disabled:opacity-40 cursor-pointer shrink-0 transition-colors"
+                      >
+                        + Add Image URL
+                      </button>
+                    </div>
+
+                    {/* Quick Retro Sample Pics */}
+                    <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        Quick-Add 2006 Aesthetic Snapshots:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          {
+                            label: '🎸 Concert Crowd',
+                            url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=80',
+                            caption: 'Front row at the show!! Best night ever ★',
+                            album: 'Concerts'
+                          },
+                          {
+                            label: '🕹️ Retro Arcade',
+                            url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80',
+                            caption: 'Friday night arcade high scores',
+                            album: 'Hangouts'
+                          },
+                          {
+                            label: '💿 Vinyl & Mics',
+                            url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+                            caption: 'Late night studio recording session',
+                            album: 'Music'
+                          },
+                          {
+                            label: '🛹 Skate Park',
+                            url: 'https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?w=800&auto=format&fit=crop&q=80',
+                            caption: 'Golden hour at the skate park',
+                            album: 'Summer 06'
+                          }
+                        ].map((sample, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setProfile((prev) => ({
+                                ...prev,
+                                photos: [
+                                  {
+                                    id: `pic_${Date.now()}_${i}`,
+                                    url: sample.url,
+                                    caption: sample.caption,
+                                    album: sample.album,
+                                    timestamp: 'Just now'
+                                  },
+                                  ...(prev.photos || [])
+                                ]
+                              }));
+                            }}
+                            className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-200 border border-slate-700/70 transition-colors cursor-pointer"
+                          >
+                            {sample.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Photo Album Items */}
+                  <div className="space-y-3">
+                    {(profile.photos || []).length === 0 ? (
+                      <div className="text-center py-6 text-slate-500 text-xs">
+                        No photos in your album yet. Upload a photo or add one above!
+                      </div>
+                    ) : (
+                      (profile.photos || []).map((photo, idx) => (
+                        <div
+                          key={photo.id || idx}
+                          className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-3 transition-all hover:border-slate-700"
+                        >
+                          {/* Thumbnail */}
+                          <div className="relative flex-shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={photo.url}
+                              alt={photo.caption}
+                              className="w-16 h-16 rounded-lg object-cover border border-slate-700 bg-slate-950"
+                            />
+                            <span className="absolute -top-1.5 -left-1.5 px-1.5 py-0.2 rounded bg-cyan-600 text-white font-mono font-bold text-[10px] shadow">
+                              #{idx + 1}
+                            </span>
+                          </div>
+
+                          {/* Editable Caption & Album */}
+                          <div className="flex-1 space-y-2 w-full">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              <input
+                                type="text"
+                                value={photo.caption}
+                                onChange={(e) => handleUpdatePhoto(idx, { caption: e.target.value })}
+                                placeholder="Photo caption..."
+                                className="sm:col-span-2 px-2.5 py-1.5 text-xs bg-slate-950 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                              />
+                              <input
+                                type="text"
+                                value={photo.album || ''}
+                                onChange={(e) => handleUpdatePhoto(idx, { album: e.target.value })}
+                                placeholder="Album (e.g. My Pics)"
+                                className="px-2.5 py-1.5 text-xs bg-slate-950 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-cyan-500"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleSetPhotoAsAvatar(photo.url)}
+                                className={`text-[11px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                                  profile.avatarUrl === photo.url
+                                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold'
+                                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+                                }`}
+                              >
+                                {profile.avatarUrl === photo.url ? '✓ Default Profile Pic' : 'Set as Profile Pic'}
+                              </button>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleMovePhoto(idx, 'up')}
+                                  disabled={idx === 0}
+                                  title="Move Up"
+                                  className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 cursor-pointer"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMovePhoto(idx, 'down')}
+                                  disabled={idx === (profile.photos || []).length - 1}
+                                  title="Move Down"
+                                  className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 cursor-pointer"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePhoto(idx)}
+                                  title="Delete Photo"
+                                  className="p-1.5 rounded bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-400 cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'friends' && (
               <div className="space-y-5">
                 <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4">

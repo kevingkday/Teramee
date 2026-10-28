@@ -1,107 +1,24 @@
 import fs from 'fs';
 import path from 'path';
-import { UserProfile, GuestbookEntry, DirectMessage } from './types';
+import {
+  UserProfile,
+  GuestbookEntry,
+  DirectMessage,
+  ActivityItem,
+  ActivityActionType,
+  ProfileVisitor
+} from './types';
 import { THEME_PRESETS } from './presets';
 import { sanitizeUserHtml } from './sanitize-html';
 import { sanitizeAndScopeCss } from './sanitize-css';
+import {
+  INITIAL_PROFILES,
+  INITIAL_MESSAGES,
+  INITIAL_ACTIVITIES,
+  INITIAL_PROFILE_VIEWS
+} from './initial-profiles';
 
 const DB_FILE = path.join(process.cwd(), '.profiles_data.json');
-
-const INITIAL_PROFILES: Record<string, UserProfile> = {
-  kevin: {
-    username: 'kevin',
-    displayName: 'Kevin',
-    headline: "Kevin is in your extended network! ;-)",
-    tagline: "Building the friendly web since 2003. Let's connect!",
-    mood: 'nostalgic',
-    avatarUrl: 'https://github.com/kevingkday.png',
-    bannerUrl: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&auto=format&fit=crop&q=80',
-    bioHtml: `<p><b>Hi! I'm Kevin.</b></p><p>Welcome to my profile! I enjoy building open platforms where everyone has their own space on the internet.</p><p><i>"Don't take life too seriously, nobody gets out alive anyway!"</i></p>`,
-    whoIdLikeToMeetHtml: `<p>Old friends, new friends, developers, musicians, and anyone who misses when the internet was creative, customizable, and fun! Drop a comment below! ;-)</p>`,
-    interestsHtml: `<p><b>General:</b> Web architecture, retro gaming, vinyl records, film cameras</p><p><b>Music:</b> The Postal Service, Jimmy Eat World, Daft Punk, Modest Mouse</p><p><b>Movies:</b> The Matrix, Eternal Sunshine, Donnie Darko</p>`,
-    songTitle: 'Such Great Heights',
-    songArtist: 'The Postal Service',
-    songAudioUrl: '',
-    tokens: THEME_PRESETS[0].tokens,
-    layout: [
-      { id: 'bio', title: 'About Me & Interests', column: 'left', order: 1, visible: true },
-      { id: 'interests', title: 'Details & Favorites', column: 'left', order: 2, visible: true },
-      { id: 'mediaPlayer', title: 'Profile Track Player', column: 'right', order: 1, visible: true },
-      { id: 'topConnections', title: "Kevin's Top 8 Friends", column: 'right', order: 2, visible: true },
-      { id: 'guestbook', title: 'Friend Blurbs & Comments', column: 'right', order: 3, visible: true }
-    ],
-    rawCss: THEME_PRESETS[0].sampleCss,
-    topFriends: [
-      { id: 'f1', name: 'Sarah', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80', role: 'Best Friend', status: 'online' },
-      { id: 'f2', name: 'Alex', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80', role: 'Bassist', status: 'away' },
-      { id: 'f3', name: 'Maya', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80', role: 'Designer', status: 'online' },
-      { id: 'f4', name: 'Jordan', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80', role: 'DJ', status: 'offline' },
-      { id: 'f5', name: 'Chloe', avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&auto=format&fit=crop&q=80', role: 'Artist', status: 'online' },
-      { id: 'f6', name: 'Liam', avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80', role: 'Skater', status: 'away' },
-      { id: 'f7', name: 'Zoe', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80', role: 'Vocalist', status: 'offline' },
-      { id: 'f8', name: 'Marcus', avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&auto=format&fit=crop&q=80', role: 'Gamer', status: 'online' }
-    ],
-    guestbook: [
-      {
-        id: 'g1',
-        author: 'Sarah',
-        avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-        timestamp: 'Today at 2:14 PM',
-        contentHtml: 'Thanks for the add Kevin!! Love your new profile background! PC4PC? <3'
-      },
-      {
-        id: 'g2',
-        author: 'Alex',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-        timestamp: 'Yesterday at 9:40 PM',
-        contentHtml: 'Awesome song choice bro! Are we practicing this Saturday at the studio?'
-      }
-    ],
-    passwordHash: '9f5c350ac0afc6b3b92d6192ed38eb86913e88cf1c2cc95654f18fe220f2654db9dea5378fd4eb188ee95d2468d2ba9c4a79d53b2d278638dbfd84d4eb45b531',
-    salt: 'ad184984c726add3462dcaa751008621',
-    updatedAt: new Date().toISOString()
-  },
-  glitterqueen99: {
-    username: 'glitterqueen99',
-    displayName: 'xX_Glitter_Star_Xx',
-    headline: 'Rawr means I love you in dinosaur!! xD',
-    tagline: 'Scene kids never die, they just dye their hair neon again~',
-    mood: 'ecstatic',
-    avatarUrl: '/avatars/glitterqueen.jpg',
-    bannerUrl: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=1200&auto=format&fit=crop&q=80',
-    bioHtml: `<p><marquee scrollamount="4">★ Welcome 2 My Sparkly Nightmare ★</marquee></p><p>Stargazer, side-bang enthusiast, and hot-topic loyalty club member. Leave a comment or get deleted from my top 8!</p>`,
-    whoIdLikeToMeetHtml: `<p>Paramore, scene queens &amp; kings, anyone with cool hair, and cute emo boys with side bangs! No posers allowed! &lt;3</p>`,
-    interestsHtml: `<p><b>Music:</b> Paramore, Fall Out Boy, My Chemical Romance, Cobra Starship</p><p><b>Hobbies:</b> Taking mirror selfies with a digital Olympus cam, designing sparkly layouts</p>`,
-    songTitle: 'Misery Business',
-    songArtist: 'Paramore',
-    songAudioUrl: '',
-    tokens: THEME_PRESETS[1].tokens,
-    layout: [
-      { id: 'bio', title: 'About Me & Status', column: 'left', order: 1, visible: true },
-      { id: 'interests', title: 'Scene Life & Music', column: 'left', order: 2, visible: true },
-      { id: 'mediaPlayer', title: 'My Jams Player', column: 'right', order: 1, visible: true },
-      { id: 'topConnections', title: 'Top 8 Scene Squad', column: 'right', order: 2, visible: true },
-      { id: 'guestbook', title: 'Blurbs & Comments', column: 'right', order: 3, visible: true }
-    ],
-    rawCss: THEME_PRESETS[1].sampleCss,
-    topFriends: [
-      { id: 'f1', name: 'VampireKitten', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80', role: 'BFFL', status: 'online' },
-      { id: 'f2', name: 'CyberGoth', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80', role: 'Emo King', status: 'online' },
-      { id: 'f3', name: 'NeonSkater', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80', role: 'Homie', status: 'away' },
-      { id: 'f4', name: 'PixelDoll', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80', role: 'Bestie', status: 'online' }
-    ],
-    guestbook: [
-      {
-        id: 'g1',
-        author: 'PixelDoll',
-        avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-        timestamp: '3 hours ago',
-        contentHtml: 'OMG your layout is SO PRETTY!! Teach me how you did the glowing border!! <3<3'
-      }
-    ],
-    updatedAt: new Date().toISOString()
-  }
-};
 
 let memoryStore: Record<string, UserProfile> = { ...INITIAL_PROFILES };
 
@@ -109,8 +26,32 @@ function loadStore(): Record<string, UserProfile> {
   try {
     if (fs.existsSync(DB_FILE)) {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
-      const parsed = JSON.parse(content);
-      return { ...INITIAL_PROFILES, ...parsed };
+      const parsed = JSON.parse(content) as Record<string, UserProfile>;
+      const merged: Record<string, UserProfile> = { ...INITIAL_PROFILES };
+      for (const [k, prof] of Object.entries(parsed)) {
+        const seed = INITIAL_PROFILES[k];
+        const photos =
+          Array.isArray(prof.photos) && prof.photos.length > 0
+            ? prof.photos
+            : seed?.photos || [];
+        const layout = Array.isArray(prof.layout) ? [...prof.layout] : seed?.layout || [];
+        if (!layout.some((b) => b.id === 'photos')) {
+          layout.push({
+            id: 'photos',
+            title: 'My Pics & Polaroids',
+            column: 'left',
+            order: 2,
+            visible: true
+          });
+        }
+        merged[k] = {
+          ...seed,
+          ...prof,
+          photos,
+          layout
+        };
+      }
+      return merged;
     }
   } catch (e) {
     console.error('Failed to read db file:', e);
@@ -159,7 +100,8 @@ export function getOrCreateProfile(username: string): UserProfile {
     tokens: THEME_PRESETS[0].tokens,
     layout: [
       { id: 'bio', title: 'About Me & Interests', column: 'left', order: 1, visible: true },
-      { id: 'interests', title: 'Details & Favorites', column: 'left', order: 2, visible: true },
+      { id: 'photos', title: 'My Pics & Polaroids', column: 'left', order: 2, visible: true },
+      { id: 'interests', title: 'Details & Favorites', column: 'left', order: 3, visible: true },
       { id: 'mediaPlayer', title: 'Profile Track Player', column: 'right', order: 1, visible: true },
       { id: 'topConnections', title: 'Top Friends', column: 'right', order: 2, visible: true },
       { id: 'guestbook', title: 'Friend Blurbs & Comments', column: 'right', order: 3, visible: true }
@@ -167,6 +109,15 @@ export function getOrCreateProfile(username: string): UserProfile {
     rawCss: THEME_PRESETS[0].sampleCss,
     topFriends: [
       { id: 'f1', name: 'Kevin', avatarUrl: 'https://github.com/kevingkday.png', role: 'First Friend', status: 'online' }
+    ],
+    photos: [
+      {
+        id: `p_${Date.now()}_1`,
+        url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+        caption: 'First pic on Teramee! ★',
+        album: 'My Pics',
+        timestamp: 'Just now'
+      }
     ],
     guestbook: [
       {
@@ -347,75 +298,6 @@ export function checkIsFavorite(fromUsername: string, targetUsername: string): b
 // Direct Messages File & Memory Store
 const MESSAGES_FILE = path.join(process.cwd(), '.messages_data.json');
 
-const INITIAL_MESSAGES: DirectMessage[] = [
-  {
-    id: 'm1',
-    fromUsername: 'glitterqueen99',
-    fromDisplayName: 'xX_Glitter_Star_Xx',
-    fromAvatarUrl: '/avatars/glitterqueen.jpg',
-    toUsername: 'kevin',
-    subject: 'Rawr! Love the retro platform!',
-    body: 'OMG Kevin! Teramee is so fun! I added glitter stars to my layout and my cassette player is blasting Paramore. Add me to your Top 8? xD',
-    timestamp: 'Today at 3:15 PM',
-    read: false
-  },
-  {
-    id: 'm2',
-    fromUsername: 'sarah',
-    fromDisplayName: 'Sarah',
-    fromAvatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
-    toUsername: 'kevin',
-    subject: 'Band rehearsal Saturday',
-    body: 'Hey Kevin, let me know if you want to try out the new guitar amp this weekend! See you soon.',
-    timestamp: 'Yesterday at 8:20 PM',
-    read: true
-  },
-  {
-    id: 'm3',
-    fromUsername: 'alex',
-    fromDisplayName: 'Alex',
-    fromAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
-    toUsername: 'kevin',
-    subject: 'New bass tab for Seven Nation Army',
-    body: 'Hey dude, I figured out the alternate bridge lick for Saturday. Check it out when you have a sec!',
-    timestamp: 'Today at 1:10 PM',
-    read: false
-  },
-  {
-    id: 'm4',
-    fromUsername: 'kevin',
-    fromDisplayName: 'Kevin',
-    fromAvatarUrl: 'https://github.com/kevingkday.png',
-    toUsername: 'sarah',
-    subject: 'Re: Band rehearsal Saturday',
-    body: 'Sounds awesome Sarah! I will bring the cables and my acoustic just in case. Coffee before at 1?',
-    timestamp: 'Today at 11:30 AM',
-    read: false
-  },
-  {
-    id: 'm5',
-    fromUsername: 'vampirekitten',
-    fromDisplayName: 'VampireKitten',
-    fromAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-    toUsername: 'glitterqueen99',
-    subject: 'OMG mall trip Friday???',
-    body: 'Hot Topic has new studded belts and black eyeliner pens on sale 2 for 1! We HAVE to go after class! Rawrrr <3',
-    timestamp: 'Today at 2:45 PM',
-    read: false
-  },
-  {
-    id: 'm6',
-    fromUsername: 'maya',
-    fromDisplayName: 'Maya',
-    fromAvatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80',
-    toUsername: 'kevin',
-    subject: 'New sticker designs ready!',
-    body: 'Hey Kevin! Just finished drawing the pixel icons for the music cassette widget. Let me know what you think!',
-    timestamp: 'Today at 2:10 PM',
-    read: false
-  }
-];
-
 let messagesMemoryStore: DirectMessage[] = [...INITIAL_MESSAGES];
 
 function loadMessagesStore(): DirectMessage[] {
@@ -494,3 +376,219 @@ export function markMessageRead(username: string, messageId: string): boolean {
   persistMessagesStore(store);
   return true;
 }
+
+// Activities & Profile Views Local Stores
+const ACTIVITIES_FILE = path.join(process.cwd(), '.activities_data.json');
+const VIEWS_FILE = path.join(process.cwd(), '.views_data.json');
+
+let activitiesMemoryStore: ActivityItem[] = [...INITIAL_ACTIVITIES];
+let viewsMemoryStore: ProfileVisitor[] = [...INITIAL_PROFILE_VIEWS];
+
+function loadActivitiesStore(): ActivityItem[] {
+  try {
+    if (fs.existsSync(ACTIVITIES_FILE)) {
+      const content = fs.readFileSync(ACTIVITIES_FILE, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to read activities file:', e);
+  }
+  return activitiesMemoryStore;
+}
+
+function persistActivitiesStore(data: ActivityItem[]) {
+  activitiesMemoryStore = data;
+  try {
+    fs.writeFileSync(ACTIVITIES_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Failed to write activities file:', e);
+  }
+}
+
+export function createActivity(input: {
+  actorUsername: string;
+  targetUsername?: string | null;
+  actionType: ActivityActionType;
+  summary: string;
+  metadata?: Record<string, unknown>;
+}): ActivityItem {
+  const store = loadActivitiesStore();
+  const actorClean = input.actorUsername.toLowerCase().trim();
+  const targetClean = input.targetUsername ? input.targetUsername.toLowerCase().trim() : null;
+  const actorProfile = getProfile(actorClean);
+
+  const newAct: ActivityItem = {
+    id: crypto.randomUUID(),
+    actorUsername: actorClean,
+    actorDisplayName: actorProfile?.displayName || actorClean,
+    actorAvatarUrl:
+      actorProfile?.avatarUrl ||
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+    targetUsername: targetClean,
+    actionType: input.actionType,
+    summary: input.summary,
+    metadata: input.metadata || {},
+    createdAt: new Date().toISOString()
+  };
+
+  store.unshift(newAct);
+  persistActivitiesStore(store.slice(0, 200));
+  return newAct;
+}
+
+export function getGlobalFeed(
+  limit = 20,
+  cursor?: string,
+  actorUsername?: string
+): { activities: ActivityItem[]; nextCursor: string | null } {
+  const safeLimit = Math.min(Math.max(1, limit), 50);
+  let list = loadActivitiesStore().sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  if (actorUsername) {
+    const cleanActor = actorUsername.toLowerCase().trim();
+    list = list.filter((a) => a.actorUsername.toLowerCase() === cleanActor);
+  }
+
+  if (cursor) {
+    const cursorTime = new Date(cursor).getTime();
+    if (!Number.isNaN(cursorTime)) {
+      list = list.filter((a) => new Date(a.createdAt).getTime() < cursorTime);
+    }
+  }
+
+  const page = list.slice(0, safeLimit).map((item) => {
+    const prof = getProfile(item.actorUsername);
+    return {
+      ...item,
+      actorDisplayName: prof?.displayName || item.actorDisplayName || item.actorUsername,
+      actorAvatarUrl:
+        prof?.avatarUrl ||
+        item.actorAvatarUrl ||
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
+    };
+  });
+
+  const nextCursor = page.length === safeLimit ? page[page.length - 1].createdAt : null;
+  return { activities: page, nextCursor };
+}
+
+function loadViewsStore(): ProfileVisitor[] {
+  try {
+    if (fs.existsSync(VIEWS_FILE)) {
+      const content = fs.readFileSync(VIEWS_FILE, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to read views file:', e);
+  }
+  return viewsMemoryStore;
+}
+
+function persistViewsStore(data: ProfileVisitor[]) {
+  viewsMemoryStore = data;
+  try {
+    fs.writeFileSync(VIEWS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Failed to write views file:', e);
+  }
+}
+
+export function recordProfileView(
+  profileUsername: string,
+  viewerUsername: string,
+  viewerAvatarUrl?: string
+): { recorded: boolean; reason?: string } {
+  const profileClean =
+    profileUsername.toLowerCase().trim() === 'tom'
+      ? 'kevin'
+      : profileUsername.toLowerCase().trim();
+  const viewerClean =
+    viewerUsername.toLowerCase().trim() === 'tom'
+      ? 'kevin'
+      : viewerUsername.toLowerCase().trim();
+
+  if (!profileClean || !viewerClean || profileClean === viewerClean) {
+    return { recorded: false, reason: 'Self-view ignored.' };
+  }
+
+  const viewerProfile = getProfile(viewerClean);
+  const resolvedAvatar =
+    viewerAvatarUrl ||
+    viewerProfile?.avatarUrl ||
+    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80';
+
+  const store = loadViewsStore();
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  // Check if same viewer viewed this profile within the last 1 hour
+  const existingIdx = store.findIndex(
+    (v) =>
+      v.profileUsername.toLowerCase() === profileClean &&
+      v.viewerUsername.toLowerCase() === viewerClean
+  );
+
+  if (existingIdx >= 0) {
+    const lastMs = new Date(store[existingIdx].viewedAt).getTime();
+    if (!Number.isNaN(lastMs) && now.getTime() - lastMs < 60 * 60 * 1000) {
+      store[existingIdx] = {
+        ...store[existingIdx],
+        viewerDisplayName: viewerProfile?.displayName || viewerClean,
+        viewerAvatarUrl: resolvedAvatar,
+        viewedAt: nowIso
+      };
+      persistViewsStore(store);
+      return { recorded: true, reason: 'Updated existing view within 1-hour window.' };
+    }
+  }
+
+  const newView: ProfileVisitor = {
+    id: crypto.randomUUID(),
+    profileUsername: profileClean,
+    viewerUsername: viewerClean,
+    viewerDisplayName: viewerProfile?.displayName || viewerClean,
+    viewerAvatarUrl: resolvedAvatar,
+    viewedAt: nowIso
+  };
+
+  store.unshift(newView);
+  persistViewsStore(store.slice(0, 300));
+  return { recorded: true };
+}
+
+export function getRecentVisitors(profileUsername: string, limit = 8): ProfileVisitor[] {
+  const profileClean =
+    profileUsername.toLowerCase().trim() === 'tom'
+      ? 'kevin'
+      : profileUsername.toLowerCase().trim();
+
+  const store = loadViewsStore()
+    .filter((v) => v.profileUsername.toLowerCase() === profileClean)
+    .sort((a, b) => new Date(b.viewedAt).getTime() - new Date(a.viewedAt).getTime());
+
+  const seen = new Set<string>();
+  const distinct: ProfileVisitor[] = [];
+
+  for (const v of store) {
+    const viewer = v.viewerUsername.toLowerCase();
+    if (viewer === profileClean || seen.has(viewer)) continue;
+    seen.add(viewer);
+    const viewerProf = getProfile(viewer);
+    distinct.push({
+      ...v,
+      viewerDisplayName: viewerProf?.displayName || v.viewerDisplayName || viewer,
+      viewerAvatarUrl:
+        viewerProf?.avatarUrl ||
+        v.viewerAvatarUrl ||
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
+    });
+    if (distinct.length >= limit) break;
+  }
+
+  return distinct;
+}
+

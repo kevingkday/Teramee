@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addGuestbookComment, deleteGuestbookComment } from '@/lib/db';
+import { addGuestbookComment, deleteGuestbookComment, createActivity } from '@/lib/db';
 import { getAuthenticatedUser } from '@/lib/auth';
 
 export async function POST(
@@ -34,6 +34,18 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    const actorHandle =
+      (authUser || author || 'visitor').toLowerCase().replace(/[^a-z0-9_]/g, '') ||
+      'visitor';
+
+    createActivity({
+      actorUsername: actorHandle,
+      targetUsername: username.toLowerCase().trim(),
+      actionType: 'GUESTBOOK_SIGNED',
+      summary: `signed the guestbook wall on @${username.toLowerCase().trim()}`,
+      metadata: { snippet: content.slice(0, 100) }
+    });
 
     return NextResponse.json({
       success: true,

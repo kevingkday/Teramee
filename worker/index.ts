@@ -13,7 +13,11 @@ import {
   checkUsernameAvailability,
   registerUserInDb,
   verifyUserCredentials,
-  getRecentProfilesFromDb
+  getRecentProfilesFromDb,
+  createActivityInDb,
+  getGlobalFeedFromDb,
+  recordProfileViewInDb,
+  getRecentVisitorsFromDb
 } from './db';
 import { sanitizeAndScopeCss } from '../src/lib/sanitize-css';
 import { UserProfile } from '../src/lib/types';
@@ -306,7 +310,25 @@ export default {
       }
     }
 
-    // --- PROFILES & SOCIAL ENDPOINTS ---
+    // --- PROFILES, FEED & SOCIAL ENDPOINTS ---
+
+    if (pathname === '/api/feed' && request.method === 'GET') {
+      try {
+        const limitParam = parseInt(url.searchParams.get('limit') || '20', 10);
+        const cursorParam = url.searchParams.get('cursor') || undefined;
+        const usernameParam = url.searchParams.get('username') || undefined;
+        const feedResult = await getGlobalFeedFromDb(
+          env.DB,
+          Number.isNaN(limitParam) ? 20 : limitParam,
+          cursorParam,
+          usernameParam
+        );
+        return jsonResponse(feedResult);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return jsonResponse({ error: `Failed to fetch activity feed: ${message}` }, 500);
+      }
+    }
 
     if (pathname === '/api/profiles' && request.method === 'GET') {
       try {
@@ -372,6 +394,74 @@ export default {
           const saved = await saveProfileToDb(env.DB, toSave);
           const cssResult = sanitizeAndScopeCss(saved.rawCss || '');
 
+          // Record granular activity feed items for profile changes
+          let recordedSpecificActivity = false;
+
+          if (
+            (existing.songTitle || '') !== (toSave.songTitle || '') ||
+            (existing.songArtist || '') !== (toSave.songArtist || '') ||
+            (existing.mediaUrl || '') !== (toSave.mediaUrl || '')
+          ) {
+            const trackLabel = toSave.songTitle || 'a new track';
+            const artistSuffix = toSave.songArtist ? ` by ${toSave.songArtist}` : '';
+            await createActivityInDb(env.DB, {
+              actorUsername: existing.username,
+              actionType: 'SONG_CHANGED',
+              summary: `updated their profile track to '${trackLabel}'${artistSuffix}`,
+              metadata: {
+                songTitle: toSave.songTitle,
+                songArtist: toSave.songArtist
+              }
+            });
+            recordedSpecificActivity = true;
+          }
+
+          if ((existing.mood || '') !== (toSave.mood || '') && toSave.mood) {
+            await createActivityInDb(env.DB, {
+              actorUsername: existing.username,
+              actionType: 'MOOD_UPDATED',
+              summary: `updated their current mood to '${toSave.mood}'`,
+              metadata: { mood: toSave.mood }
+            });
+            recordedSpecificActivity = true;
+          }
+
+          if (
+            JSON.stringify(existing.topFriends || []) !==
+            JSON.stringify(toSave.topFriends || [])
+          ) {
+            await createActivityInDb(env.DB, {
+              actorUsername: existing.username,
+              actionType: 'TOP_FRIENDS_CHANGED',
+              summary: 'rearranged their Top 8 Friends squad',
+              metadata: {}
+            });
+            recordedSpecificActivity = true;
+          }
+
+          if ((toSave.photos || []).length > (existing.photos || []).length) {
+            await createActivityInDb(env.DB, {
+              actorUsername: existing.username,
+              actionType: 'PHOTO_ADDED',
+              summary: 'added new Polaroid snaps to their photo album',
+              metadata: { photoCount: (toSave.photos || []).length }
+            });
+            recordedSpecificActivity = true;
+          }
+
+          if (
+            !recordedSpecificActivity ||
+            (existing.rawCss || '') !== (toSave.rawCss || '') ||
+            JSON.stringify(existing.tokens) !== JSON.stringify(toSave.tokens)
+          ) {
+            await createActivityInDb(env.DB, {
+              actorUsername: existing.username,
+              actionType: 'PROFILE_UPDATED',
+              summary: 'customized their profile layout and scoped CSS theme',
+              metadata: {}
+            });
+          }
+
           return jsonResponse({
             success: true,
             profile: saved,
@@ -411,6 +501,19 @@ export default {
             avatarUrl,
             authorUsername || authUser || undefined
           );
+
+          const actorHandle =
+            (authorUsername || authUser || author || 'visitor')
+              .toLowerCase()
+              .replace(/[^a-z0-9_]/g, '') || 'visitor';
+
+          await createActivityInDb(env.DB, {
+            actorUsername: actorHandle,
+            targetUsername: username.toLowerCase().trim(),
+            actionType: 'GUESTBOOK_SIGNED',
+            summary: `signed the guestbook wall on @${username.toLowerCase().trim()}`,
+            metadata: { snippet: content.slice(0, 100) }
+          });
 
           return jsonResponse({
             success: true,
@@ -455,6 +558,57 @@ export default {
       }
       const result = await toggleFavoriteInDb(env.DB, authUser, targetUser);
       return jsonResponse({ success: true, ...result });
+    }
+
+    const viewMatch = pathname.match(/^\/api\/profiles\/([^/]+)\/view$/);
+    if (viewMatch && request.method === 'POST') {
+      try {
+        const profileUsername = decodeURIComponent(viewMatch[1]);
+        let viewerUsername = getAuthenticatedUser(request);
+        let viewerAvatarUrl: string | undefined;
+
+        if (!viewerUsername) {
+          try {
+            const body = (await request.json()) as {
+              viewerUsername?: string;
+              viewerAvatarUrl?: string;
+            };
+            if (body?.viewerUsername) {
+              viewerUsername = body.viewerUsername;
+              viewerAvatarUrl = body.viewerAvatarUrl;
+            }
+          } catch {
+            // No JSON body provided
+          }
+        }
+
+        if (!viewerUsername) {
+          return jsonResponse({ recorded: false, reason: 'Unauthenticated visitor' });
+        }
+
+        const result = await recordProfileViewInDb(
+          env.DB,
+          profileUsername,
+          viewerUsername,
+          viewerAvatarUrl
+        );
+        return jsonResponse(result);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return jsonResponse({ error: `Failed to record view: ${message}` }, 500);
+      }
+    }
+
+    const visitorsMatch = pathname.match(/^\/api\/profiles\/([^/]+)\/visitors$/);
+    if (visitorsMatch && request.method === 'GET') {
+      try {
+        const profileUsername = decodeURIComponent(visitorsMatch[1]);
+        const visitors = await getRecentVisitorsFromDb(env.DB, profileUsername, 8);
+        return jsonResponse({ visitors });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return jsonResponse({ error: `Failed to load recent visitors: ${message}` }, 500);
+      }
     }
 
     if (pathname === '/api/sanitize' && request.method === 'POST') {

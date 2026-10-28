@@ -17,7 +17,52 @@ export interface ProfileDesignTokens {
   boxShadow: 'none' | 'retro-hard' | 'neon-glow' | 'soft-blur' | 'cyber-drop';
 }
 
-export type LayoutBlockId = 'bio' | 'topConnections' | 'mediaPlayer' | 'guestbook' | 'statusBlurb' | 'interests';
+export type LayoutBlockId =
+  | 'bio'
+  | 'topConnections'
+  | 'mediaPlayer'
+  | 'guestbook'
+  | 'statusBlurb'
+  | 'interests'
+  | 'photos'
+  | 'recentVisitors';
+
+export type ActivityActionType =
+  | 'PROFILE_UPDATED'
+  | 'SONG_CHANGED'
+  | 'GUESTBOOK_SIGNED'
+  | 'MOOD_UPDATED'
+  | 'TOP_FRIENDS_CHANGED'
+  | 'PHOTO_ADDED';
+
+export interface ActivityItem {
+  id: string;
+  actorUsername: string;
+  actorDisplayName?: string;
+  actorAvatarUrl?: string;
+  targetUsername?: string | null;
+  actionType: ActivityActionType;
+  summary: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface ProfileVisitor {
+  id: string;
+  profileUsername: string;
+  viewerUsername: string;
+  viewerDisplayName?: string;
+  viewerAvatarUrl: string;
+  viewedAt: string;
+}
+
+export interface ProfilePhoto {
+  id: string;
+  url: string;
+  caption: string;
+  album?: string;
+  timestamp?: string;
+}
 
 export interface LayoutBlock {
   id: LayoutBlockId;
@@ -77,6 +122,7 @@ export interface UserProfile {
   layout: LayoutBlock[];
   rawCss: string;
   topFriends: FriendConnection[];
+  photos?: ProfilePhoto[];
   guestbook: GuestbookEntry[];
   friends?: string[];
   favorites?: string[];

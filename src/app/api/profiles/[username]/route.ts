@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getProfile, saveProfile } from '@/lib/db';
+import { getProfile, saveProfile, createActivity } from '@/lib/db';
 import { sanitizeAndScopeCss } from '@/lib/sanitize-css';
 import { UserProfile } from '@/lib/types';
 import { getAuthenticatedUser, hashPassword, generateSalt } from '@/lib/auth';
@@ -83,6 +83,73 @@ export async function PUT(
 
     const saved = saveProfile(toSave);
     const cssResult = sanitizeAndScopeCss(saved.rawCss || '');
+
+    let recordedSpecificActivity = false;
+
+    if (
+      (existing.songTitle || '') !== (toSave.songTitle || '') ||
+      (existing.songArtist || '') !== (toSave.songArtist || '') ||
+      (existing.mediaUrl || '') !== (toSave.mediaUrl || '')
+    ) {
+      const trackLabel = toSave.songTitle || 'a new track';
+      const artistSuffix = toSave.songArtist ? ` by ${toSave.songArtist}` : '';
+      createActivity({
+        actorUsername: existing.username,
+        actionType: 'SONG_CHANGED',
+        summary: `updated their profile track to '${trackLabel}'${artistSuffix}`,
+        metadata: {
+          songTitle: toSave.songTitle,
+          songArtist: toSave.songArtist
+        }
+      });
+      recordedSpecificActivity = true;
+    }
+
+    if ((existing.mood || '') !== (toSave.mood || '') && toSave.mood) {
+      createActivity({
+        actorUsername: existing.username,
+        actionType: 'MOOD_UPDATED',
+        summary: `updated their current mood to '${toSave.mood}'`,
+        metadata: { mood: toSave.mood }
+      });
+      recordedSpecificActivity = true;
+    }
+
+    if (
+      JSON.stringify(existing.topFriends || []) !==
+      JSON.stringify(toSave.topFriends || [])
+    ) {
+      createActivity({
+        actorUsername: existing.username,
+        actionType: 'TOP_FRIENDS_CHANGED',
+        summary: 'rearranged their Top 8 Friends squad',
+        metadata: {}
+      });
+      recordedSpecificActivity = true;
+    }
+
+    if ((toSave.photos || []).length > (existing.photos || []).length) {
+      createActivity({
+        actorUsername: existing.username,
+        actionType: 'PHOTO_ADDED',
+        summary: 'added new Polaroid snaps to their photo album',
+        metadata: { photoCount: (toSave.photos || []).length }
+      });
+      recordedSpecificActivity = true;
+    }
+
+    if (
+      !recordedSpecificActivity ||
+      (existing.rawCss || '') !== (toSave.rawCss || '') ||
+      JSON.stringify(existing.tokens) !== JSON.stringify(toSave.tokens)
+    ) {
+      createActivity({
+        actorUsername: existing.username,
+        actionType: 'PROFILE_UPDATED',
+        summary: 'customized their profile layout and scoped CSS theme',
+        metadata: {}
+      });
+    }
 
     return NextResponse.json({
       success: true,

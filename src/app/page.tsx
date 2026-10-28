@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PlatformNavbar } from '@/components/PlatformNavbar';
+import { ActivityFeed } from '@/components/ActivityFeed';
 import {
   Sparkles,
   Music,
@@ -820,9 +821,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Community Member Profiles */}
+      {/* Featured Community Member Profiles & Live Retro Wall */}
       <section className="py-20 border-b border-slate-800 bg-slate-950/40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          {/* Global Activity Feed ("The Retro Wall / Activity Log") */}
+          <ActivityFeed limit={6} />
+
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <span className="text-xs font-mono uppercase tracking-wider text-pink-400 font-bold">

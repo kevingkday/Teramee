@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   layout_json TEXT NOT NULL,
   raw_css TEXT DEFAULT '',
   top_friends_json TEXT NOT NULL,
+  photos_json TEXT DEFAULT '[]',
   friends_json TEXT DEFAULT '[]',
   favorites_json TEXT DEFAULT '[]',
   password_hash TEXT DEFAULT '',
@@ -53,3 +54,27 @@ CREATE TABLE IF NOT EXISTS direct_messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_to_user ON direct_messages(to_username, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS activities (
+  id TEXT PRIMARY KEY,
+  actor_username TEXT NOT NULL,
+  target_username TEXT,
+  action_type TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  metadata_json TEXT DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_activities_created_at ON activities(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activities_actor ON activities(actor_username, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS profile_views (
+  id TEXT PRIMARY KEY,
+  profile_username TEXT NOT NULL,
+  viewer_username TEXT NOT NULL,
+  viewer_avatar_url TEXT DEFAULT '',
+  viewed_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_profile_views_lookup ON profile_views(profile_username, viewed_at DESC);
+

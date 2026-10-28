@@ -1,5 +1,10 @@
 // Cloudflare D1 Database Auto-Schema & Seeding
-import { INITIAL_PROFILES, INITIAL_MESSAGES } from '../src/lib/initial-profiles';
+import {
+  INITIAL_PROFILES,
+  INITIAL_MESSAGES,
+  INITIAL_ACTIVITIES,
+  INITIAL_PROFILE_VIEWS
+} from '../src/lib/initial-profiles';
 
 export interface D1Database {
   prepare(query: string): D1PreparedStatement;
@@ -54,6 +59,7 @@ export async function ensureSchema(db: D1Database): Promise<void> {
       layout_json TEXT NOT NULL,
       raw_css TEXT DEFAULT '',
       top_friends_json TEXT NOT NULL,
+      photos_json TEXT DEFAULT '[]',
       friends_json TEXT DEFAULT '[]',
       favorites_json TEXT DEFAULT '[]',
       password_hash TEXT DEFAULT '',
@@ -82,7 +88,26 @@ export async function ensureSchema(db: D1Database): Promise<void> {
       read INTEGER DEFAULT 0,
       created_at TEXT NOT NULL
     )`,
-    `CREATE INDEX IF NOT EXISTS idx_messages_to_user ON direct_messages(to_username, created_at DESC)`
+    `CREATE INDEX IF NOT EXISTS idx_messages_to_user ON direct_messages(to_username, created_at DESC)`,
+    `CREATE TABLE IF NOT EXISTS activities (
+      id TEXT PRIMARY KEY,
+      actor_username TEXT NOT NULL,
+      target_username TEXT,
+      action_type TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      metadata_json TEXT DEFAULT '{}',
+      created_at TEXT NOT NULL
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_activities_created_at ON activities(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_activities_actor ON activities(actor_username, created_at DESC)`,
+    `CREATE TABLE IF NOT EXISTS profile_views (
+      id TEXT PRIMARY KEY,
+      profile_username TEXT NOT NULL,
+      viewer_username TEXT NOT NULL,
+      viewer_avatar_url TEXT DEFAULT '',
+      viewed_at TEXT NOT NULL
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_profile_views_lookup ON profile_views(profile_username, viewed_at DESC)`
   ];
 
   for (const sql of statements) {
@@ -101,6 +126,7 @@ export async function ensureSchema(db: D1Database): Promise<void> {
     "ALTER TABLE profiles ADD COLUMN who_id_like_to_meet_html TEXT DEFAULT ''",
     "ALTER TABLE profiles ADD COLUMN friends_json TEXT DEFAULT '[]'",
     "ALTER TABLE profiles ADD COLUMN favorites_json TEXT DEFAULT '[]'",
+    "ALTER TABLE profiles ADD COLUMN photos_json TEXT DEFAULT '[]'",
     "ALTER TABLE guestbook_entries ADD COLUMN author_username TEXT DEFAULT ''"
   ];
   for (const sql of alterStatements) {
@@ -127,9 +153,9 @@ export async function ensureSchema(db: D1Database): Promise<void> {
               username, display_name, headline, tagline, mood,
               avatar_url, banner_url, bio_html, who_id_like_to_meet_html, interests_html,
               song_title, song_artist, song_audio_url, media_type, media_url,
-              tokens_json, layout_json, raw_css, top_friends_json,
+              tokens_json, layout_json, raw_css, top_friends_json, photos_json,
               friends_json, favorites_json, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `)
           .bind(
             handle,
@@ -151,6 +177,7 @@ export async function ensureSchema(db: D1Database): Promise<void> {
             JSON.stringify(profile.layout || []),
             profile.rawCss || '',
             JSON.stringify(profile.topFriends || []),
+            JSON.stringify(profile.photos || []),
             JSON.stringify(profile.friends || []),
             JSON.stringify(profile.favorites || []),
             profile.updatedAt || new Date().toISOString()
@@ -198,6 +225,49 @@ export async function ensureSchema(db: D1Database): Promise<void> {
             msg.timestamp,
             msg.read ? 1 : 0,
             new Date().toISOString()
+          )
+          .run();
+      }
+    }
+
+    // Seed initial activities and profile views if none exist yet
+    const existingActivity = await db
+      .prepare('SELECT id FROM activities LIMIT 1')
+      .first<{ id: string }>();
+
+    if (!existingActivity) {
+      for (const act of INITIAL_ACTIVITIES) {
+        await db
+          .prepare(`
+            INSERT OR IGNORE INTO activities (
+              id, actor_username, target_username, action_type, summary, metadata_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          `)
+          .bind(
+            act.id,
+            act.actorUsername.toLowerCase(),
+            act.targetUsername || null,
+            act.actionType,
+            act.summary,
+            JSON.stringify(act.metadata || {}),
+            act.createdAt
+          )
+          .run();
+      }
+
+      for (const view of INITIAL_PROFILE_VIEWS) {
+        await db
+          .prepare(`
+            INSERT OR IGNORE INTO profile_views (
+              id, profile_username, viewer_username, viewer_avatar_url, viewed_at
+            ) VALUES (?, ?, ?, ?, ?)
+          `)
+          .bind(
+            view.id,
+            view.profileUsername.toLowerCase(),
+            view.viewerUsername.toLowerCase(),
+            view.viewerAvatarUrl || '',
+            view.viewedAt
           )
           .run();
       }
