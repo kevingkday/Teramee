@@ -134,3 +134,4 @@ export async function DELETE(request: NextRequest) {
 
   return NextResponse.json({ error: 'Invalid delete type.' }, { status: 400 });
 }
+

@@ -9,13 +9,15 @@ interface SandboxedFrameProps {
   sanitizedCss: string;
   viewport?: 'desktop' | 'tablet' | 'mobile';
   onViewportChange?: (viewport: 'desktop' | 'tablet' | 'mobile') => void;
+  isAdmin?: boolean;
 }
 
 export function SandboxedFrame({
   profile,
   sanitizedCss,
   viewport = 'desktop',
-  onViewportChange
+  onViewportChange,
+  isAdmin = false
 }: SandboxedFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [isFrameReady, setIsFrameReady] = useState(false);
@@ -104,12 +106,20 @@ export function SandboxedFrame({
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800/90 text-slate-300 font-mono text-[11px] border border-slate-700">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-emerald-400 font-semibold">iframe sandbox</span>
-            <span className="text-slate-500">|</span>
-            <span>postMessage 60fps</span>
-          </div>
+          {isAdmin ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800/90 text-slate-300 font-mono text-[11px] border border-slate-700">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-emerald-400 font-semibold">iframe sandbox</span>
+              <span className="text-slate-500">|</span>
+              <span>postMessage 60fps</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800/90 text-slate-300 font-mono text-[11px] border border-slate-700">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-slate-400">Live Preview:</span>
+              <span className="text-cyan-300 font-semibold">teramee.com/user/{profile.username}</span>
+            </div>
+          )}
         </div>
 
         {/* Viewport Width Controls & Refresh */}

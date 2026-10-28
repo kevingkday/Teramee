@@ -590,10 +590,10 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
           )}
         </div>
 
-        {/* Adversarial Attack & Security Test Tools (Owner Only) */}
+        {/* Adversarial Attack & Security Test Tools (Admin Only) */}
         <div className="flex items-center gap-2">
-          {/* Quick Adversarial Injection Test */}
-          {isOwner && (
+          {/* Quick Adversarial Injection Test (Admin Only) */}
+          {isCurrentUserAdmin && (
             <div className="relative group">
               <button
                 type="button"
@@ -645,31 +645,33 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
             </div>
           )}
 
-          {/* Sandbox Technology Mode Toggle */}
-          <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700 text-xs">
-            <button
-              type="button"
-              onClick={() => setSandboxMode('iframe')}
-              className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer ${
-                sandboxMode === 'iframe'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Iframe Sandbox
-            </button>
-            <button
-              type="button"
-              onClick={() => setSandboxMode('shadow')}
-              className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer ${
-                sandboxMode === 'shadow'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Shadow DOM
-            </button>
-          </div>
+          {/* Sandbox Technology Mode Toggle (Admin Only) */}
+          {isCurrentUserAdmin && (
+            <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700 text-xs">
+              <button
+                type="button"
+                onClick={() => setSandboxMode('iframe')}
+                className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer ${
+                  sandboxMode === 'iframe'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Iframe Sandbox
+              </button>
+              <button
+                type="button"
+                onClick={() => setSandboxMode('shadow')}
+                className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer ${
+                  sandboxMode === 'shadow'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Shadow DOM
+              </button>
+            </div>
+          )}
 
           {/* Auth Status & Login Button */}
           {isOwner ? (
@@ -1848,19 +1850,23 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
               <div className="space-y-4">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-300">Raw CSS Editor</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-mono border border-pink-500/30">
-                      Auto-Scoped to .profile-canvas
-                    </span>
+                    <span className="font-bold text-slate-300">Custom Profile CSS</span>
+                    {isCurrentUserAdmin && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-mono border border-pink-500/30">
+                        Auto-Scoped to .profile-canvas
+                      </span>
+                    )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowTransformedCss(!showTransformedCss)}
-                    className="text-xs text-blue-400 hover:text-blue-300 underline font-mono flex items-center gap-1"
-                  >
-                    {showTransformedCss ? 'Hide Transformed AST' : 'View Transformed AST'}
-                  </button>
+                  {isCurrentUserAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowTransformedCss(!showTransformedCss)}
+                      className="text-xs text-blue-400 hover:text-blue-300 underline font-mono flex items-center gap-1 cursor-pointer"
+                    >
+                      {showTransformedCss ? 'Hide Transformed AST' : 'View Transformed AST'}
+                    </button>
+                  )}
                 </div>
 
                 {/* Code Textarea with line numbers vibe */}
@@ -1877,11 +1883,11 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                   />
                 </div>
 
-                {/* Transformed AST Scoped Output Accordion */}
-                {showTransformedCss && (
+                {/* Transformed AST Scoped Output Accordion (Admin Only) */}
+                {isCurrentUserAdmin && showTransformedCss && (
                   <div className="p-3 rounded-xl border border-slate-700/80 bg-slate-900/90 space-y-2">
                     <p className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                      <span>Transformed & Scoped Output:</span>
+                      <span>Transformed &amp; Scoped Output:</span>
                       <span className="font-mono text-[10px] text-emerald-400">
                         {cssAudit.stats.scopedRuleCount} rules scoped
                       </span>
@@ -1892,58 +1898,60 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                   </div>
                 )}
 
-                {/* Real-time AST Sanitization Diagnostics Panel */}
-                <div className="p-3.5 rounded-xl border border-slate-700/80 bg-slate-800/70 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {cssAudit.violations.some((v) => v.severity === 'critical') ? (
-                        <ShieldAlert className="w-4 h-4 text-red-400" />
-                      ) : (
-                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                      )}
-                      <span className="text-xs font-bold text-slate-200">
-                        CSS AST Sanitizer Pipeline
+                {/* Real-time AST Sanitization Diagnostics Panel (Admin Only) */}
+                {isCurrentUserAdmin && (
+                  <div className="p-3.5 rounded-xl border border-slate-700/80 bg-slate-800/70 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {cssAudit.violations.some((v) => v.severity === 'critical') ? (
+                          <ShieldAlert className="w-4 h-4 text-red-400" />
+                        ) : (
+                          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                        )}
+                        <span className="text-xs font-bold text-slate-200">
+                          CSS AST Sanitizer Pipeline
+                        </span>
+                      </div>
+
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400">
+                        Rules: {cssAudit.stats.ruleCount} | Scoped: {cssAudit.stats.scopedRuleCount} | Stripped: {cssAudit.stats.strippedRuleCount}
                       </span>
                     </div>
 
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400">
-                      Rules: {cssAudit.stats.ruleCount} | Scoped: {cssAudit.stats.scopedRuleCount} | Stripped: {cssAudit.stats.strippedRuleCount}
-                    </span>
-                  </div>
-
-                  {/* Violations / Audit Messages List */}
-                  {cssAudit.violations.length === 0 ? (
-                    <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>AST Clean: No malicious rules or unapproved directives detected.</span>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                      {cssAudit.violations.map((violation, i) => (
-                        <div
-                          key={i}
-                          className={`p-2 rounded text-[11px] flex items-start gap-2 border ${
-                            violation.severity === 'critical'
-                              ? 'bg-red-500/10 border-red-500/30 text-red-300'
-                              : violation.severity === 'warning'
-                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                              : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
-                          }`}
-                        >
-                          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold">{violation.message}</p>
-                            {violation.originalSnippet && (
-                              <code className="block mt-0.5 text-[10px] font-mono opacity-80 truncate">
-                                {violation.originalSnippet}
-                              </code>
-                            )}
+                    {/* Violations / Audit Messages List */}
+                    {cssAudit.violations.length === 0 ? (
+                      <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>AST Clean: No malicious rules or unapproved directives detected.</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        {cssAudit.violations.map((violation, i) => (
+                          <div
+                            key={i}
+                            className={`p-2 rounded text-[11px] flex items-start gap-2 border ${
+                              violation.severity === 'critical'
+                                ? 'bg-red-500/10 border-red-500/30 text-red-300'
+                                : violation.severity === 'warning'
+                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                                : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
+                            }`}
+                          >
+                            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold">{violation.message}</p>
+                              {violation.originalSnippet && (
+                                <code className="block mt-0.5 text-[10px] font-mono opacity-80 truncate">
+                                  {violation.originalSnippet}
+                                </code>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -2356,6 +2364,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
               sanitizedCss={cssAudit.sanitizedCss}
               viewport={viewport}
               onViewportChange={setViewport}
+              isAdmin={isCurrentUserAdmin}
             />
           ) : (
             <div className="flex-1 flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl p-4">

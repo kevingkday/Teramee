@@ -183,17 +183,19 @@ export function PlatformNavbar({
               Member Profiles
             </Link>
 
-            <Link
-              href="/technology"
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                pathname.startsWith('/technology')
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              Tech & Security
-            </Link>
+            {isAdmin && (
+              <Link
+                href="/technology"
+                className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                  pathname.startsWith('/technology')
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Tech & Security
+              </Link>
+            )}
           </nav>
         </div>
 
@@ -222,16 +224,18 @@ export function PlatformNavbar({
             </div>
           )}
 
-          {/* Sandbox Status Badge */}
-          <Link
-            href="/technology"
-            title="Sandbox Defense Active: User CSS is strictly isolated in an iframe and AST sanitized. Click to learn how."
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors"
-          >
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span className="hidden lg:inline">Sandbox:</span>
-            <span className="font-mono text-emerald-300 uppercase">Secure</span>
-          </Link>
+          {/* Sandbox Status Badge (Admin Only) */}
+          {isAdmin && (
+            <Link
+              href="/technology"
+              title="Sandbox Defense Active: User CSS is strictly isolated in an iframe and AST sanitized. Click to learn how."
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span className="hidden lg:inline">Sandbox:</span>
+              <span className="font-mono text-emerald-300 uppercase">Secure</span>
+            </Link>
+          )}
 
           {/* Direct Messages Mail Button (Visible when logged in) */}
           {currentUser && (

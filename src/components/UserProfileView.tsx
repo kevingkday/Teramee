@@ -24,6 +24,7 @@ export function UserProfileView({ initialProfile, username }: UserProfileViewPro
   const [loading, setLoading] = useState<boolean>(!profile);
   const [error, setError] = useState<string | null>(null);
   const [authUser, setAuthUser] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -48,6 +49,7 @@ export function UserProfileView({ initialProfile, username }: UserProfileViewPro
         if (!isCancelled && data?.authenticated && data?.user?.username) {
           const viewer = data.user.username;
           setAuthUser(viewer);
+          setIsAdmin(Boolean(data.user.isAdmin || viewer.toLowerCase() === 'kevin'));
           if (viewer.toLowerCase() !== effectiveUsername.toLowerCase()) {
             fetch(`/api/profiles/${encodeURIComponent(effectiveUsername)}/view`, {
               method: 'POST',
@@ -142,14 +144,18 @@ export function UserProfileView({ initialProfile, username }: UserProfileViewPro
 
       <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs flex items-center justify-between text-slate-300">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="w-2 h-2 rounded-full bg-emerald-400" />
           <span>
-            Viewing Public Profile: <b className="text-white">@{profile.username}</b>
+            Viewing Profile: <b className="text-white">@{profile.username}</b>
           </span>
-          <span className="hidden sm:inline text-slate-500">|</span>
-          <span className="hidden sm:inline text-slate-400 font-mono text-[11px]">
-            CSS Scope: <code className="text-emerald-400">.profile-canvas</code> ({cssResult.stats.scopedRuleCount} rules scoped)
-          </span>
+          {isAdmin && (
+            <>
+              <span className="hidden sm:inline text-slate-500">|</span>
+              <span className="hidden sm:inline text-slate-400 font-mono text-[11px]">
+                CSS Scope: <code className="text-emerald-400">.profile-canvas</code> ({cssResult.stats.scopedRuleCount} rules scoped)
+              </span>
+            </>
+          )}
         </div>
 
         {isOwner ? (

@@ -161,6 +161,7 @@ export default function HomePage() {
 
   // Authentication State
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [currentDisplayName, setCurrentDisplayName] = useState<string>('');
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string>('');
 
@@ -170,10 +171,14 @@ export default function HomePage() {
       .then((data) => {
         if (data.authenticated && data.user) {
           setCurrentUser(data.user.username);
+          setIsAdmin(
+            Boolean(data.user.isAdmin || data.user.username?.toLowerCase() === 'kevin')
+          );
           setCurrentDisplayName(data.user.displayName || data.user.username);
           setCurrentAvatarUrl(data.user.avatarUrl || '');
         } else {
           setCurrentUser(null);
+          setIsAdmin(false);
           setCurrentDisplayName('');
           setCurrentAvatarUrl('');
         }
@@ -799,23 +804,25 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Feature 6: Zero Bleed CSS Sandboxing */}
+            {/* Feature 6: Polaroid Photo Albums & Recent Visitors */}
             <div className="p-6 rounded-2xl bg-gradient-to-b from-blue-950/40 to-slate-900 border border-blue-500/30 space-y-3">
               <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                <ShieldCheck className="w-6 h-6" />
+                <Heart className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-white flex items-center gap-1.5">
-                Zero CSS Bleed Sandbox
+                My Pics &amp; Recent Visitors
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Powered by an AST CSS sanitizer and iframe isolation. Write whatever wild CSS you want without breaking the site or compromising security.
+                Show off your favorite Polaroid snapshots in your photo gallery and see who stopped by to check out your profile!
               </p>
-              <Link
-                href="/technology"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 pt-1"
-              >
-                Read our Security Architecture &rarr;
-              </Link>
+              {isAdmin && (
+                <Link
+                  href="/technology"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 pt-1"
+                >
+                  Admin: View Security Architecture &rarr;
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -950,13 +957,15 @@ export default function HomePage() {
               <ArrowRight className="w-4 h-4" />
             </Link>
 
-            <Link
-              href="/technology"
-              className="px-6 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-sm border border-slate-700 transition-colors flex items-center gap-2"
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>How Sandbox Security Works</span>
-            </Link>
+            {isAdmin && (
+              <Link
+                href="/technology"
+                className="px-6 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-sm border border-slate-700 transition-colors flex items-center gap-2"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Admin: Sandbox Architecture</span>
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -976,9 +985,11 @@ export default function HomePage() {
 
           <div className="flex flex-wrap items-center gap-6 text-xs text-slate-400">
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
-            <Link href="/editor" className="hover:text-white transition-colors">Theme Studio</Link>
-            <Link href="/user/kevin" className="hover:text-white transition-colors">Demo Profiles</Link>
-            <Link href="/technology" className="hover:text-white transition-colors">Security & AST Sandbox</Link>
+            <Link href="/editor?user=glitterqueen99" className="hover:text-white transition-colors">Theme Studio</Link>
+            <Link href="/user/kevin" className="hover:text-white transition-colors">Member Profiles</Link>
+            {isAdmin && (
+              <Link href="/technology" className="hover:text-white transition-colors">Tech &amp; Security</Link>
+            )}
           </div>
 
           <div className="text-center md:text-right text-[11px] text-slate-500 font-mono">

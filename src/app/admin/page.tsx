@@ -400,7 +400,7 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
                   onClick={fetchDashboard}
@@ -409,6 +409,13 @@ export default function AdminDashboardPage() {
                   <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-amber-400' : ''}`} />
                   <span>Refresh</span>
                 </button>
+                <Link
+                  href="/technology"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs font-bold text-emerald-300 flex items-center gap-1.5 transition-colors"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Tech &amp; Sandbox Docs</span>
+                </Link>
                 <Link
                   href="/editor?user=kevin"
                   className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 transition-colors"
@@ -959,3 +966,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
