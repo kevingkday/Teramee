@@ -17,7 +17,8 @@ import {
   Heart,
   Globe,
   Search,
-  Music
+  Music,
+  Mail
 } from 'lucide-react';
 
 function SignupContent() {
@@ -31,6 +32,7 @@ function SignupContent() {
     initialHandleParam.toLowerCase().replace(/[^a-z0-9_]/g, '')
   );
   const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState(() => {
     if (initialThemeParam && THEME_PRESETS.some((p) => p.id === initialThemeParam)) {
@@ -148,6 +150,11 @@ function SignupContent() {
       setError(availability.reason || 'Handle is not available.');
       return;
     }
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid email address for account recovery and notifications.');
+      return;
+    }
     if (!password || password.trim().length < 4) {
       setError('Please set a password of at least 4 characters to protect your profile.');
       return;
@@ -163,6 +170,7 @@ function SignupContent() {
         body: JSON.stringify({
           username: cleanUsername,
           displayName: displayName.trim() || cleanUsername,
+          email: cleanEmail,
           password: password.trim(),
           presetId: selectedPresetId
         })
@@ -393,29 +401,54 @@ function SignupContent() {
                 </p>
               </div>
 
-              {/* Step 2: Profile Identity & Password */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Display Name */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-slate-300">
-                    Display Name
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                      <User className="w-4 h-4" />
+              {/* Step 2: Profile Identity, Email & Password */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Display Name */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-300">
+                      Display Name
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        maxLength={40}
+                        placeholder="e.g. xX_Alex_Rawr_Xx or Alex D."
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                      />
                     </div>
-                    <input
-                      type="text"
-                      maxLength={40}
-                      placeholder="e.g. xX_Alex_Rawr_Xx or Alex D."
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                    />
+                    <p className="text-[11px] text-slate-500">
+                      Shown at the top of your profile header.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Shown at the top of your profile header.
-                  </p>
+
+                  {/* Email Address */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-300">
+                      Email Address <span className="text-red-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="email"
+                        required
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Kept private — used for account verification &amp; recovery.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Password */}

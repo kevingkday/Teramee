@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getProfile, saveProfile, createActivity } from '@/lib/db';
+import { getProfile, saveProfile, createActivity, isUserAdmin } from '@/lib/db';
 import { sanitizeAndScopeCss } from '@/lib/sanitize-css';
 import { UserProfile } from '@/lib/types';
 import { getAuthenticatedUser, hashPassword, generateSalt } from '@/lib/auth';
@@ -40,7 +40,7 @@ export async function PUT(
 
     // Verify session authentication
     const authUser = getAuthenticatedUser(request);
-    if (!authUser || authUser.toLowerCase() !== targetUsername) {
+    if (!authUser || (authUser.toLowerCase() !== targetUsername && !isUserAdmin(authUser))) {
       return NextResponse.json(
         { error: `Unauthorized: You must be logged in as @${targetUsername} to save changes.` },
         { status: 401 }

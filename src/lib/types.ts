@@ -104,6 +104,8 @@ export interface DirectMessage {
 
 export interface UserProfile {
   username: string;
+  email?: string;
+  isAdmin?: boolean;
   displayName: string;
   headline: string;
   tagline: string;

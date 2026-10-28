@@ -4,11 +4,19 @@ import { hashPassword, generateSalt, setSessionCookie } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password, displayName } = await request.json();
+    const { username, email, password, displayName } = await request.json();
 
     if (!username || !password) {
       return NextResponse.json(
         { error: 'Username and password are required.' },
+        { status: 400 }
+      );
+    }
+
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return NextResponse.json(
+        { error: 'Please enter a valid email address.' },
         { status: 400 }
       );
     }
@@ -35,6 +43,7 @@ export async function POST(request: NextRequest) {
     const baseProfile = getOrCreateProfile(cleanUsername);
     const updated = saveProfile({
       ...baseProfile,
+      email: cleanEmail,
       displayName: displayName?.trim() || cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1),
       passwordHash,
       salt

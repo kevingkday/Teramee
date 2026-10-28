@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
     authenticated: true,
     user: {
       username,
+      email: profile?.email || (username.toLowerCase() === 'kevin' ? 'kevingkday@gmail.com' : ''),
+      isAdmin: Boolean(profile?.isAdmin || username.toLowerCase() === 'kevin'),
       displayName: profile?.displayName || username,
       avatarUrl: profile?.avatarUrl || ''
     }

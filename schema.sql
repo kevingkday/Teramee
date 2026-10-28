@@ -2,6 +2,8 @@
 
 CREATE TABLE IF NOT EXISTS profiles (
   username TEXT PRIMARY KEY,
+  email TEXT DEFAULT '',
+  is_admin INTEGER DEFAULT 0,
   display_name TEXT NOT NULL,
   headline TEXT DEFAULT '',
   tagline TEXT DEFAULT '',

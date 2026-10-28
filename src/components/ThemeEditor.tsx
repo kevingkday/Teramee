@@ -11,6 +11,7 @@ import {
 } from '@/lib/types';
 import { THEME_PRESETS } from '@/lib/presets';
 import { sanitizeAndScopeCss } from '@/lib/sanitize-css';
+import { parseYouTubeUrl, parseSpotifyUrl, POPULAR_RETRO_SOUNDTRACKS } from '@/lib/media-utils';
 import { SandboxedFrame } from './SandboxedFrame';
 import { ShadowDomSandbox } from './ShadowDomSandbox';
 import {
@@ -80,6 +81,11 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
     }
     return {
       ...initialProfile,
+      email:
+        initialProfile.email ||
+        (initialProfile.username.toLowerCase() === 'kevin' ? 'kevingkday@gmail.com' : ''),
+      isAdmin:
+        initialProfile.isAdmin ?? initialProfile.username.toLowerCase() === 'kevin',
       layout: baseLayout,
       photos: initialProfile.photos || []
     };
@@ -103,6 +109,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
 
   // Authentication & Ownership State
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginPassword, setLoginPassword] = useState('');
@@ -117,6 +124,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
   );
   const [regHandle, setRegHandle] = useState('');
   const [regDisplayName, setRegDisplayName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regError, setRegError] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
@@ -156,8 +164,10 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
     return () => clearTimeout(timer);
   }, [regHandle]);
 
-  // Determine if the current authenticated user owns this profile
-  const isOwner = !!currentUser && currentUser.toLowerCase() === profile.username.toLowerCase();
+  // Determine if the current authenticated user owns this profile (or is a platform admin)
+  const isOwner =
+    !!currentUser &&
+    (currentUser.toLowerCase() === profile.username.toLowerCase() || isCurrentUserAdmin);
 
   // Check auth session
   useEffect(() => {
@@ -166,11 +176,18 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
       .then((data) => {
         if (data.authenticated && data.user) {
           setCurrentUser(data.user.username);
+          setIsCurrentUserAdmin(
+            Boolean(data.user.isAdmin || data.user.username?.toLowerCase() === 'kevin')
+          );
         } else {
           setCurrentUser(null);
+          setIsCurrentUserAdmin(false);
         }
       })
-      .catch(() => setCurrentUser(null))
+      .catch(() => {
+        setCurrentUser(null);
+        setIsCurrentUserAdmin(false);
+      })
       .finally(() => setIsCheckingAuth(false));
   }, []);
 
@@ -205,7 +222,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regHandle.trim() || !regPassword.trim()) return;
+    if (!regHandle.trim() || !regEmail.trim() || !regPassword.trim()) return;
     setIsRegistering(true);
     setRegError('');
     try {
@@ -215,6 +232,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
         body: JSON.stringify({
           username: regHandle.trim().toLowerCase(),
           displayName: regDisplayName.trim() || undefined,
+          email: regEmail.trim().toLowerCase(),
           password: regPassword.trim()
         })
       });
@@ -960,7 +978,19 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-300">Create Password</label>
+                    <label className="text-xs font-semibold text-slate-300">Email Address <span className="text-rose-400">*</span></label>
+                    <input
+                      type="email"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      className="w-full px-3.5 py-2 text-xs bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-pink-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300">Create Password <span className="text-rose-400">*</span></label>
                     <input
                       type="password"
                       value={regPassword}
@@ -980,7 +1010,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
 
                   <button
                     type="submit"
-                    disabled={isRegistering || !regHandle || !regPassword || regAvailability.available === false}
+                    disabled={isRegistering || !regHandle || !regEmail || !regPassword || regAvailability.available === false}
                     className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-pink-500/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {isRegistering ? (
@@ -1208,11 +1238,50 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                 </div>
 
                 {/* Profile Soundtrack Info */}
-                <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-3">
-                  <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                    <Music className="w-4 h-4 text-cyan-400" />
-                    Profile Soundtrack Track
-                  </h3>
+                <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                      <Music className="w-4 h-4 text-cyan-400" />
+                      Profile Soundtrack &amp; Media Player
+                    </h3>
+                    <span className="text-[10px] font-mono text-cyan-400">
+                      Cassette / Spotify / YouTube
+                    </span>
+                  </div>
+
+                  {/* Player Type Selector */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Player Mode</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(
+                        [
+                          { id: 'retro-cassette', label: '📼 Retro Cassette' },
+                          { id: 'spotify', label: '🟢 Spotify Embed' },
+                          { id: 'youtube', label: '📺 YouTube Video' }
+                        ] as const
+                      ).map((mode) => {
+                        const active = (profile.mediaType || 'retro-cassette') === mode.id;
+                        return (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() =>
+                              setProfile((prev) => ({ ...prev, mediaType: mode.id }))
+                            }
+                            className={`py-2 px-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                              active
+                                ? 'bg-cyan-600/20 border-cyan-500 text-cyan-200 shadow-sm'
+                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {mode.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Song Title & Artist (always editable for Cassette & Activity Feed) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-300">Song Title</label>
@@ -1220,6 +1289,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                         type="text"
                         value={profile.songTitle}
                         onChange={(e) => setProfile(prev => ({ ...prev, songTitle: e.target.value }))}
+                        placeholder="e.g. Seven Nation Army"
                         className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
                       />
                     </div>
@@ -1229,19 +1299,135 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                         type="text"
                         value={profile.songArtist}
                         onChange={(e) => setProfile(prev => ({ ...prev, songArtist: e.target.value }))}
+                        placeholder="e.g. The White Stripes"
                         className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
                       />
+                    </div>
+                  </div>
+
+                  {/* Conditional Embed / Audio URL Input */}
+                  {profile.mediaType === 'spotify' && (
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-xs font-semibold text-emerald-300">
+                        Spotify Track, Album, or Playlist URL
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.mediaUrl || ''}
+                        onChange={(e) =>
+                          setProfile((prev) => ({ ...prev, mediaUrl: e.target.value }))
+                        }
+                        placeholder="https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT"
+                        className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-emerald-500"
+                      />
+                      {profile.mediaUrl && !parseSpotifyUrl(profile.mediaUrl).isValid && (
+                        <p className="text-[11px] text-amber-400">
+                          Paste a valid Spotify link (e.g. <code className="font-mono">https://open.spotify.com/track/...</code>)
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {profile.mediaType === 'youtube' && (
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-xs font-semibold text-rose-300">
+                        YouTube Video or Song URL
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.mediaUrl || ''}
+                        onChange={(e) =>
+                          setProfile((prev) => ({ ...prev, mediaUrl: e.target.value }))
+                        }
+                        placeholder="https://www.youtube.com/watch?v=0wrsZog8qXg"
+                        className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-rose-500"
+                      />
+                      {profile.mediaUrl && !parseYouTubeUrl(profile.mediaUrl).isValid && (
+                        <p className="text-[11px] text-amber-400">
+                          Paste a valid YouTube link (e.g. <code className="font-mono">https://www.youtube.com/watch?v=...</code>)
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {(!profile.mediaType || profile.mediaType === 'retro-cassette') && (
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-xs font-semibold text-slate-300">
+                        Direct MP3 / Audio Stream URL <span className="text-slate-500 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.songAudioUrl || ''}
+                        onChange={(e) =>
+                          setProfile((prev) => ({ ...prev, songAudioUrl: e.target.value }))
+                        }
+                        placeholder="https://.../track.mp3 (or leave blank for built-in retro synth)"
+                        className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Quick-Fill 2006 Anthem Presets */}
+                  <div className="pt-2 border-t border-slate-700/70 space-y-1.5">
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      Quick-Fill 2006 MySpace Anthems:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {POPULAR_RETRO_SOUNDTRACKS.map((track, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() =>
+                            setProfile((prev) => ({
+                              ...prev,
+                              songTitle: track.name,
+                              songArtist: track.artist,
+                              mediaUrl:
+                                prev.mediaType === 'youtube'
+                                  ? track.youtubeUrl
+                                  : prev.mediaType === 'spotify'
+                                  ? track.spotifyUrl
+                                  : prev.mediaUrl
+                            }))
+                          }
+                          className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-700 text-[11px] text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
+                        >
+                          ♫ {track.name} — {track.artist}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
 
                 {/* Profile Security & Password */}
                 <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-3">
-                  <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                    <KeyRound className="w-4 h-4 text-amber-400" />
-                    Profile Security &amp; Password
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                      <KeyRound className="w-4 h-4 text-amber-400" />
+                      Account Email &amp; Security
+                    </h3>
+                    {(profile.isAdmin || profile.username.toLowerCase() === 'kevin') && (
+                      <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold">
+                        ★ PLATFORM ADMIN
+                      </span>
+                    )}
+                  </div>
+
                   <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Account Email (Private)</label>
+                    <input
+                      type="email"
+                      value={profile.email || ''}
+                      onChange={(e) => setProfile((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder="you@example.com"
+                      className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-blue-500"
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      Never displayed publicly on your profile. Used for account verification &amp; recovery.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1 border-t border-slate-700/60">
                     <label className="text-xs font-semibold text-slate-300">Set New Password</label>
                     <input
                       type="password"
@@ -1250,9 +1436,11 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                       placeholder="Leave blank to keep current password"
                       className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-blue-500"
                     />
-                    <p className="text-[10px] text-slate-400">
-                      Default demo password is <code className="text-amber-300 font-bold">teramee2026</code>. Enter a new password here and click Save Profile to update it.
-                    </p>
+                    {profile.username.toLowerCase() !== 'kevin' && (
+                      <p className="text-[10px] text-slate-400">
+                        Default demo password is <code className="text-amber-300 font-bold">teramee2026</code>. Enter a new password here and click Save Profile to update it.
+                      </p>
+                    )}
                     {passwordChangeSuccess && (
                       <p className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
                         <Check className="w-3.5 h-3.5" />

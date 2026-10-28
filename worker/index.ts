@@ -17,7 +17,12 @@ import {
   createActivityInDb,
   getGlobalFeedFromDb,
   recordProfileViewInDb,
-  getRecentVisitorsFromDb
+  getRecentVisitorsFromDb,
+  isUserAdminInDb,
+  getAdminDashboardDataFromDb,
+  adminUpdateUserInDb,
+  adminDeleteUserFromDb,
+  adminDeleteActivityFromDb
 } from './db';
 import { sanitizeAndScopeCss } from '../src/lib/sanitize-css';
 import { UserProfile } from '../src/lib/types';
@@ -143,6 +148,8 @@ export default {
         authenticated: true,
         user: {
           username: profile?.username || username,
+          email: profile?.email || '',
+          isAdmin: Boolean(profile?.isAdmin || username.toLowerCase() === 'kevin'),
           displayName: profile?.displayName || username,
           avatarUrl: profile?.avatarUrl || ''
         }
@@ -163,6 +170,7 @@ export default {
       try {
         const body = (await request.json()) as {
           username?: string;
+          email?: string;
           displayName?: string;
           password?: string;
           presetId?: string;
@@ -174,6 +182,7 @@ export default {
 
         const regResult = await registerUserInDb(env.DB, {
           username: body.username,
+          email: body.email || '',
           displayName: body.displayName || body.username,
           password: body.password || '',
           presetId: body.presetId || 'classic-blue'
@@ -253,6 +262,101 @@ export default {
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         return jsonResponse({ error: `Login error: ${message}` }, 500);
+      }
+    }
+
+    // --- PLATFORM ADMIN ENDPOINT ---
+
+    if (pathname === '/api/admin') {
+      const authUser = getAuthenticatedUser(request);
+      const isAdmin = await isUserAdminInDb(env.DB, authUser);
+      if (!authUser || !isAdmin) {
+        return jsonResponse(
+          { error: 'Admin access required. Please sign in as @kevin or a platform administrator.' },
+          403
+        );
+      }
+
+      if (request.method === 'GET') {
+        try {
+          const dashboard = await getAdminDashboardDataFromDb(env.DB);
+          return jsonResponse({
+            adminUser: authUser,
+            ...dashboard
+          });
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          return jsonResponse({ error: `Failed to load admin dashboard: ${message}` }, 500);
+        }
+      }
+
+      if (request.method === 'PUT') {
+        try {
+          const body = (await request.json()) as {
+            username?: string;
+            email?: string;
+            isAdmin?: boolean;
+            newPassword?: string;
+            displayName?: string;
+          };
+          if (!body.username) {
+            return jsonResponse({ error: 'Target username is required.' }, 400);
+          }
+          const result = await adminUpdateUserInDb(env.DB, body.username, {
+            email: body.email,
+            isAdmin: body.isAdmin,
+            newPassword: body.newPassword,
+            displayName: body.displayName
+          });
+          if (!result.success) {
+            return jsonResponse({ error: result.error || 'Failed to update user.' }, 400);
+          }
+          return jsonResponse({ success: true });
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          return jsonResponse({ error: `Admin update error: ${message}` }, 500);
+        }
+      }
+
+      if (request.method === 'DELETE') {
+        try {
+          const actionType = url.searchParams.get('type') || '';
+          if (actionType === 'user') {
+            const targetUser = url.searchParams.get('username') || '';
+            if (!targetUser) {
+              return jsonResponse({ error: 'Username is required.' }, 400);
+            }
+            const res = await adminDeleteUserFromDb(env.DB, targetUser);
+            if (!res.success) {
+              return jsonResponse({ error: res.error }, 400);
+            }
+            return jsonResponse({ success: true });
+          }
+
+          if (actionType === 'comment') {
+            const profileUser = url.searchParams.get('username') || '';
+            const commentId = url.searchParams.get('id') || '';
+            if (!profileUser || !commentId) {
+              return jsonResponse({ error: 'Profile username and comment id are required.' }, 400);
+            }
+            await deleteGuestbookCommentFromDb(env.DB, profileUser, commentId);
+            return jsonResponse({ success: true });
+          }
+
+          if (actionType === 'activity') {
+            const activityId = url.searchParams.get('id') || '';
+            if (!activityId) {
+              return jsonResponse({ error: 'Activity ID is required.' }, 400);
+            }
+            await adminDeleteActivityFromDb(env.DB, activityId);
+            return jsonResponse({ success: true });
+          }
+
+          return jsonResponse({ error: 'Invalid delete type.' }, 400);
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          return jsonResponse({ error: `Admin delete error: ${message}` }, 500);
+        }
       }
     }
 
@@ -368,14 +472,15 @@ export default {
           if (targetUsername === 'tom') targetUsername = 'kevin';
 
           const authUser = getAuthenticatedUser(request);
-          if (!authUser || authUser.toLowerCase() !== targetUsername) {
+          const isAdmin = await isUserAdminInDb(env.DB, authUser);
+          if (!authUser || (authUser.toLowerCase() !== targetUsername && !isAdmin)) {
             return jsonResponse(
               { error: `Unauthorized: You must be logged in as @${targetUsername} to save changes.` },
               401
             );
           }
 
-          const body = (await request.json()) as Partial<UserProfile>;
+          const body = (await request.json()) as Partial<UserProfile> & { newPassword?: string };
           const existing = await getProfileFromDb(env.DB, targetUsername);
 
           if (!existing) {
@@ -383,6 +488,12 @@ export default {
               { error: `Profile '@${targetUsername}' not found to update.` },
               404
             );
+          }
+
+          if (body.newPassword && typeof body.newPassword === 'string' && body.newPassword.trim().length >= 4) {
+            await adminUpdateUserInDb(env.DB, targetUsername, {
+              newPassword: body.newPassword.trim()
+            });
           }
 
           const toSave: UserProfile = {

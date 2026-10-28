@@ -47,6 +47,8 @@ function loadStore(): Record<string, UserProfile> {
         merged[k] = {
           ...seed,
           ...prof,
+          email: prof.email || seed?.email || '',
+          isAdmin: prof.isAdmin ?? seed?.isAdmin ?? false,
           photos,
           layout
         };
@@ -591,4 +593,101 @@ export function getRecentVisitors(profileUsername: string, limit = 8): ProfileVi
 
   return distinct;
 }
+
+export function isUserAdmin(username: string | null): boolean {
+  if (!username) return false;
+  const clean = username.toLowerCase().trim();
+  if (clean === 'kevin') return true;
+  const prof = getProfile(clean);
+  return Boolean(prof?.isAdmin);
+}
+
+export function getAdminDashboardData() {
+  const store = loadStore();
+  const allProfiles = Object.values(store).filter((p) => p.username.toLowerCase() !== 'tom');
+  const activities = loadActivitiesStore();
+  const views = loadViewsStore();
+  const messages = loadMessagesStore();
+
+  const recentComments: Array<{
+    id: string;
+    profileUsername: string;
+    author: string;
+    authorUsername?: string;
+    avatarUrl: string;
+    timestamp: string;
+    contentHtml: string;
+    createdAt: string;
+  }> = [];
+
+  const users = allProfiles
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .map((p) => {
+      const uname = p.username.toLowerCase();
+      for (const c of p.guestbook || []) {
+        recentComments.push({
+          id: c.id,
+          profileUsername: p.username,
+          author: c.author,
+          authorUsername: c.username,
+          avatarUrl: c.avatarUrl,
+          timestamp: c.timestamp,
+          contentHtml: c.contentHtml,
+          createdAt: p.updatedAt
+        });
+      }
+      return {
+        username: p.username,
+        displayName: p.displayName || p.username,
+        email: p.email || INITIAL_PROFILES[uname]?.email || (uname === 'kevin' ? 'kevingkday@gmail.com' : ''),
+        isAdmin: Boolean(p.isAdmin || uname === 'kevin'),
+        avatarUrl: p.avatarUrl || '',
+        mood: p.mood || 'chilling',
+        songTitle: p.songTitle || '',
+        songArtist: p.songArtist || '',
+        photoCount: (p.photos || []).length,
+        friendCount: (p.friends || []).length,
+        guestbookCount: (p.guestbook || []).length,
+        hasPassword: Boolean(p.passwordHash),
+        isSeeded: Boolean(INITIAL_PROFILES[uname]),
+        updatedAt: p.updatedAt
+      };
+    });
+
+  return {
+    stats: {
+      totalUsers: users.length,
+      customUsers: users.filter((u) => !u.isSeeded).length,
+      totalComments: recentComments.length,
+      totalActivities: activities.length,
+      totalViews: views.length,
+      totalMessages: messages.length
+    },
+    users,
+    recentComments: recentComments.slice(0, 40),
+    recentActivities: activities.slice(0, 30)
+  };
+}
+
+export function adminDeleteUser(targetUsername: string): { success: boolean; error?: string } {
+  const clean = targetUsername.toLowerCase().trim();
+  if (clean === 'kevin') {
+    return { success: false, error: 'Cannot delete primary platform admin @kevin.' };
+  }
+  const store = loadStore();
+  if (!store[clean]) {
+    return { success: false, error: `User @${clean} not found.` };
+  }
+  delete store[clean];
+  persistStore(store);
+  return { success: true };
+}
+
+export function adminDeleteActivity(activityId: string): boolean {
+  const store = loadActivitiesStore();
+  const next = store.filter((a) => a.id !== activityId);
+  persistActivitiesStore(next);
+  return true;
+}
+
 

@@ -41,6 +41,8 @@ export async function ensureSchema(db: D1Database): Promise<void> {
   const statements = [
     `CREATE TABLE IF NOT EXISTS profiles (
       username TEXT PRIMARY KEY,
+      email TEXT DEFAULT '',
+      is_admin INTEGER DEFAULT 0,
       display_name TEXT NOT NULL,
       headline TEXT DEFAULT '',
       tagline TEXT DEFAULT '',
@@ -127,6 +129,8 @@ export async function ensureSchema(db: D1Database): Promise<void> {
     "ALTER TABLE profiles ADD COLUMN friends_json TEXT DEFAULT '[]'",
     "ALTER TABLE profiles ADD COLUMN favorites_json TEXT DEFAULT '[]'",
     "ALTER TABLE profiles ADD COLUMN photos_json TEXT DEFAULT '[]'",
+    "ALTER TABLE profiles ADD COLUMN email TEXT DEFAULT ''",
+    "ALTER TABLE profiles ADD COLUMN is_admin INTEGER DEFAULT 0",
     "ALTER TABLE guestbook_entries ADD COLUMN author_username TEXT DEFAULT ''"
   ];
   for (const sql of alterStatements) {
@@ -150,15 +154,17 @@ export async function ensureSchema(db: D1Database): Promise<void> {
         await db
           .prepare(`
             INSERT OR REPLACE INTO profiles (
-              username, display_name, headline, tagline, mood,
+              username, email, is_admin, display_name, headline, tagline, mood,
               avatar_url, banner_url, bio_html, who_id_like_to_meet_html, interests_html,
               song_title, song_artist, song_audio_url, media_type, media_url,
               tokens_json, layout_json, raw_css, top_friends_json, photos_json,
               friends_json, favorites_json, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `)
           .bind(
             handle,
+            profile.email || '',
+            profile.isAdmin ? 1 : 0,
             profile.displayName,
             profile.headline || '',
             profile.tagline || '',
@@ -229,6 +235,11 @@ export async function ensureSchema(db: D1Database): Promise<void> {
           .run();
       }
     }
+
+    // Ensure @kevin has kevingkday@gmail.com and is_admin = 1 in existing D1 databases
+    await db
+      .prepare("UPDATE profiles SET email = 'kevingkday@gmail.com', is_admin = 1 WHERE username = 'kevin'")
+      .run();
 
     // Seed initial activities and profile views if none exist yet
     const existingActivity = await db

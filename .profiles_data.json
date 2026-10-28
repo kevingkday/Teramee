@@ -2,6 +2,8 @@
   "kevin": {
     "username": "kevin",
     "displayName": "Kevin",
+    "email": "kevingkday@gmail.com",
+    "isAdmin": true,
     "headline": "Kevin is in your extended network! ;-)",
     "tagline": "Building the friendly web since 2003. Let's connect!",
     "mood": "nostalgic",

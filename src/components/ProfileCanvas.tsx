@@ -43,6 +43,59 @@ export function ProfileCanvas({
   onAddComment
 }: ProfileCanvasProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      return;
+    }
+
+    if (profile.songAudioUrl) {
+      const audio = new Audio(profile.songAudioUrl);
+      audio.loop = true;
+      audioRef.current = audio;
+      audio.play().catch(() => {});
+      return () => {
+        audio.pause();
+      };
+    }
+
+    // Built-in Web Audio API 2006 Indie Synth Arpeggio if no custom MP3 URL is set
+    type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
+    const AudioCtx =
+      window.AudioContext || (window as unknown as WebkitAudioWindow).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const ctx = new AudioCtx();
+    const notes = [261.63, 329.63, 392.0, 523.25, 392.0, 329.63, 293.66, 349.23, 440.0, 587.33, 440.0, 349.23];
+    let step = 0;
+
+    const playNote = () => {
+      if (ctx.state === 'closed') return;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(notes[step % notes.length], ctx.currentTime);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.23);
+      step++;
+    };
+
+    playNote();
+    const interval = window.setInterval(playNote, 240);
+
+    return () => {
+      window.clearInterval(interval);
+      ctx.close().catch(() => {});
+    };
+  }, [isPlaying, profile.songAudioUrl]);
   const [commentAuthor, setCommentAuthor] = useState('');
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

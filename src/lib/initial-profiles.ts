@@ -3,6 +3,8 @@ import { UserProfile, DirectMessage, ActivityItem, ProfileVisitor } from './type
 export const INITIAL_PROFILES: Record<string, UserProfile> = {
   "kevin": {
     "username": "kevin",
+    "email": "kevingkday@gmail.com",
+    "isAdmin": true,
     "displayName": "Kevin",
     "headline": "Kevin is in your extended network! ;-)",
     "tagline": "Building the friendly web since 2003. Let's connect!",

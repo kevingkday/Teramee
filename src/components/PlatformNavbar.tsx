@@ -31,6 +31,7 @@ export function PlatformNavbar({
 }: PlatformNavbarProps) {
   const pathname = usePathname();
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [currentDisplayName, setCurrentDisplayName] = useState<string>('');
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string>('');
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -49,6 +50,9 @@ export function PlatformNavbar({
       .then((data) => {
         if (data.authenticated && data.user) {
           setCurrentUser(data.user.username);
+          setIsAdmin(
+            Boolean(data.user.isAdmin || data.user.username?.toLowerCase() === 'kevin')
+          );
           setCurrentDisplayName(data.user.displayName || data.user.username);
           setCurrentAvatarUrl(data.user.avatarUrl || '');
           fetch('/api/messages')
@@ -61,6 +65,7 @@ export function PlatformNavbar({
             .catch(() => {});
         } else {
           setCurrentUser(null);
+          setIsAdmin(false);
           setCurrentDisplayName('');
           setCurrentAvatarUrl('');
           setUnreadCount(0);
@@ -280,6 +285,21 @@ export function PlatformNavbar({
                 <Palette className="w-3.5 h-3.5 text-indigo-300" />
                 <span className="hidden md:inline">Studio</span>
               </Link>
+
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                    pathname.startsWith('/admin')
+                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
+                      : 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/40 text-amber-300'
+                  }`}
+                  title="Open Teramee Platform Admin Dashboard"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Admin</span>
+                </Link>
+              )}
 
               <button
                 type="button"

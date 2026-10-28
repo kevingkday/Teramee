@@ -20,6 +20,8 @@ export { ensureSchema };
 
 interface ProfileRow {
   username: string;
+  email?: string;
+  is_admin?: number;
   display_name: string;
   headline: string;
   tagline: string;
@@ -120,6 +122,13 @@ export async function getProfileFromDb(
 
     return {
       username: profileRow.username,
+      email:
+        profileRow.email ||
+        (normalized === 'kevin' ? 'kevingkday@gmail.com' : INITIAL_PROFILES[normalized]?.email || ''),
+      isAdmin:
+        Boolean(profileRow.is_admin) ||
+        normalized === 'kevin' ||
+        Boolean(INITIAL_PROFILES[normalized]?.isAdmin),
       displayName: profileRow.display_name,
       headline: profileRow.headline || '',
       tagline: profileRow.tagline || '',
@@ -166,14 +175,15 @@ export async function saveProfileToDb(
   await db
     .prepare(`
       INSERT INTO profiles (
-        username, display_name, headline, tagline, mood,
+        username, email, is_admin, display_name, headline, tagline, mood,
         avatar_url, banner_url, bio_html, who_id_like_to_meet_html, interests_html,
         song_title, song_artist, song_audio_url,
         media_type, media_url,
         tokens_json, layout_json, raw_css, top_friends_json, photos_json,
         friends_json, favorites_json, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(username) DO UPDATE SET
+        email = CASE WHEN excluded.email != '' THEN excluded.email ELSE profiles.email END,
         display_name = excluded.display_name,
         headline = excluded.headline,
         tagline = excluded.tagline,
@@ -199,6 +209,8 @@ export async function saveProfileToDb(
     `)
     .bind(
       normalized,
+      (profile.email || '').trim().toLowerCase(),
+      profile.isAdmin || normalized === 'kevin' ? 1 : 0,
       profile.displayName,
       sanitizedHeadline,
       sanitizedTagline,
@@ -498,6 +510,7 @@ export async function registerUserInDb(
   db: D1Database,
   input: {
     username: string;
+    email?: string;
     displayName: string;
     password?: string;
     presetId?: string;
@@ -506,6 +519,11 @@ export async function registerUserInDb(
   const check = await checkUsernameAvailability(db, input.username);
   if (!check.available) {
     return { success: false, error: check.reason || 'Username not available.' };
+  }
+
+  const cleanEmail = (input.email || '').trim().toLowerCase();
+  if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    return { success: false, error: 'Please enter a valid email address.' };
   }
 
   const normalized = check.normalized;
@@ -550,16 +568,17 @@ export async function registerUserInDb(
   await db
     .prepare(`
       INSERT INTO profiles (
-        username, display_name, headline, tagline, mood,
+        username, email, is_admin, display_name, headline, tagline, mood,
         avatar_url, banner_url, bio_html, who_id_like_to_meet_html, interests_html,
         song_title, song_artist, song_audio_url,
         media_type, media_url,
         tokens_json, layout_json, raw_css, top_friends_json,
         friends_json, favorites_json, password_hash, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '["kevin"]', '[]', ?, ?)
+      ) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '["kevin"]', '[]', ?, ?)
     `)
     .bind(
       normalized,
+      cleanEmail,
       sanitizeUserHtml(input.displayName || normalized),
       `${input.displayName || normalized} is in your extended network!`,
       'New to the neighborhood — leave a comment on my wall!',
@@ -935,4 +954,242 @@ export async function getRecentVisitorsFromDb(
 
   return distinctVisitors;
 }
+
+export interface AdminUserSummary {
+  username: string;
+  displayName: string;
+  email: string;
+  isAdmin: boolean;
+  avatarUrl: string;
+  mood: string;
+  songTitle: string;
+  songArtist: string;
+  photoCount: number;
+  friendCount: number;
+  guestbookCount: number;
+  hasPassword: boolean;
+  isSeeded: boolean;
+  updatedAt: string;
+}
+
+export interface AdminGuestbookItem {
+  id: string;
+  profileUsername: string;
+  author: string;
+  authorUsername?: string;
+  avatarUrl: string;
+  timestamp: string;
+  contentHtml: string;
+  createdAt: string;
+}
+
+export async function isUserAdminInDb(
+  db: D1Database,
+  username: string | null
+): Promise<boolean> {
+  if (!username) return false;
+  const clean = username.toLowerCase().trim();
+  if (clean === 'kevin') return true;
+  const row = await db
+    .prepare('SELECT is_admin FROM profiles WHERE username = ? LIMIT 1')
+    .bind(clean)
+    .first<{ is_admin: number }>();
+  return Boolean(row?.is_admin);
+}
+
+export async function getAdminDashboardDataFromDb(db: D1Database): Promise<{
+  stats: {
+    totalUsers: number;
+    customUsers: number;
+    totalComments: number;
+    totalActivities: number;
+    totalViews: number;
+    totalMessages: number;
+  };
+  users: AdminUserSummary[];
+  recentComments: AdminGuestbookItem[];
+  recentActivities: ActivityItem[];
+}> {
+  const profilesRes = await db
+    .prepare('SELECT * FROM profiles WHERE username != ? ORDER BY updated_at DESC')
+    .bind('tom')
+    .all<ProfileRow>();
+
+  const commentCountsRes = await db
+    .prepare('SELECT username, COUNT(*) as cnt FROM guestbook_entries GROUP BY username')
+    .all<{ username: string; cnt: number }>();
+
+  const commentCountMap: Record<string, number> = {};
+  for (const r of commentCountsRes.results || []) {
+    commentCountMap[r.username.toLowerCase()] = Number(r.cnt) || 0;
+  }
+
+  const users: AdminUserSummary[] = (profilesRes.results || []).map((row) => {
+    const uname = row.username.toLowerCase();
+    const seed = INITIAL_PROFILES[uname];
+    let photosCount = 0;
+    try {
+      const parsedPhotos = JSON.parse(row.photos_json || '[]');
+      photosCount = Array.isArray(parsedPhotos) && parsedPhotos.length > 0
+        ? parsedPhotos.length
+        : (seed?.photos?.length || 0);
+    } catch {
+      photosCount = seed?.photos?.length || 0;
+    }
+
+    let friendsCount = 0;
+    try {
+      const parsedFriends = JSON.parse(row.friends_json || '[]');
+      friendsCount = Array.isArray(parsedFriends) ? parsedFriends.length : 0;
+    } catch {
+      friendsCount = 0;
+    }
+
+    return {
+      username: row.username,
+      displayName: row.display_name || row.username,
+      email: row.email || seed?.email || (uname === 'kevin' ? 'kevingkday@gmail.com' : ''),
+      isAdmin: Boolean(row.is_admin || uname === 'kevin'),
+      avatarUrl: row.avatar_url || seed?.avatarUrl || '',
+      mood: row.mood || 'chilling',
+      songTitle: row.song_title || '',
+      songArtist: row.song_artist || '',
+      photoCount: photosCount,
+      friendCount: friendsCount,
+      guestbookCount: commentCountMap[uname] || 0,
+      hasPassword: Boolean(row.password_hash),
+      isSeeded: Boolean(INITIAL_PROFILES[uname]),
+      updatedAt: row.updated_at
+    };
+  });
+
+  const recentCommentsRes = await db
+    .prepare(`
+      SELECT id, username, author, author_username, avatar_url, timestamp, content_html, created_at
+      FROM guestbook_entries
+      ORDER BY created_at DESC
+      LIMIT 40
+    `)
+    .all<GuestbookRow>();
+
+  const recentComments: AdminGuestbookItem[] = (recentCommentsRes.results || []).map((c) => ({
+    id: c.id,
+    profileUsername: c.username,
+    author: c.author,
+    authorUsername: c.author_username || undefined,
+    avatarUrl: c.avatar_url,
+    timestamp: c.timestamp,
+    contentHtml: c.content_html,
+    createdAt: c.created_at
+  }));
+
+  const feedData = await getGlobalFeedFromDb(db, 30);
+
+  const viewsCountRow = await db
+    .prepare('SELECT COUNT(*) as cnt FROM profile_views')
+    .first<{ cnt: number }>();
+  const messagesCountRow = await db
+    .prepare('SELECT COUNT(*) as cnt FROM direct_messages')
+    .first<{ cnt: number }>();
+  const activitiesCountRow = await db
+    .prepare('SELECT COUNT(*) as cnt FROM activities')
+    .first<{ cnt: number }>();
+  const totalCommentsCount = Object.values(commentCountMap).reduce((a, b) => a + b, 0);
+  const customUsersCount = users.filter((u) => !u.isSeeded).length;
+
+  return {
+    stats: {
+      totalUsers: users.length,
+      customUsers: customUsersCount,
+      totalComments: totalCommentsCount,
+      totalActivities: Number(activitiesCountRow?.cnt) || feedData.activities.length,
+      totalViews: Number(viewsCountRow?.cnt) || 0,
+      totalMessages: Number(messagesCountRow?.cnt) || 0
+    },
+    users,
+    recentComments,
+    recentActivities: feedData.activities
+  };
+}
+
+export async function adminUpdateUserInDb(
+  db: D1Database,
+  targetUsername: string,
+  updates: {
+    email?: string;
+    isAdmin?: boolean;
+    newPassword?: string;
+    displayName?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const clean = targetUsername.toLowerCase().trim();
+  const existing = await getProfileFromDb(db, clean);
+  if (!existing) {
+    return { success: false, error: `User @${clean} not found.` };
+  }
+
+  if (updates.email !== undefined) {
+    const cleanEmail = updates.email.trim().toLowerCase();
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return { success: false, error: 'Invalid email address format.' };
+    }
+    await db
+      .prepare('UPDATE profiles SET email = ?, updated_at = ? WHERE username = ?')
+      .bind(cleanEmail, new Date().toISOString(), clean)
+      .run();
+  }
+
+  if (updates.isAdmin !== undefined && clean !== 'kevin') {
+    await db
+      .prepare('UPDATE profiles SET is_admin = ?, updated_at = ? WHERE username = ?')
+      .bind(updates.isAdmin ? 1 : 0, new Date().toISOString(), clean)
+      .run();
+  }
+
+  if (updates.displayName !== undefined && updates.displayName.trim()) {
+    await db
+      .prepare('UPDATE profiles SET display_name = ?, updated_at = ? WHERE username = ?')
+      .bind(sanitizeUserHtml(updates.displayName.trim()), new Date().toISOString(), clean)
+      .run();
+  }
+
+  if (updates.newPassword && updates.newPassword.trim()) {
+    if (updates.newPassword.trim().length < 4) {
+      return { success: false, error: 'Password must be at least 4 characters.' };
+    }
+    const newHash = await hashPassword(updates.newPassword.trim());
+    await db
+      .prepare('UPDATE profiles SET password_hash = ?, updated_at = ? WHERE username = ?')
+      .bind(newHash, new Date().toISOString(), clean)
+      .run();
+  }
+
+  return { success: true };
+}
+
+export async function adminDeleteUserFromDb(
+  db: D1Database,
+  targetUsername: string
+): Promise<{ success: boolean; error?: string }> {
+  const clean = targetUsername.toLowerCase().trim();
+  if (clean === 'kevin') {
+    return { success: false, error: 'Cannot delete primary platform admin @kevin.' };
+  }
+
+  await db.prepare('DELETE FROM guestbook_entries WHERE username = ?').bind(clean).run();
+  await db.prepare('DELETE FROM activities WHERE actor_username = ? OR target_username = ?').bind(clean, clean).run();
+  await db.prepare('DELETE FROM profile_views WHERE profile_username = ? OR viewer_username = ?').bind(clean, clean).run();
+  await db.prepare('DELETE FROM profiles WHERE username = ?').bind(clean).run();
+
+  return { success: true };
+}
+
+export async function adminDeleteActivityFromDb(
+  db: D1Database,
+  activityId: string
+): Promise<boolean> {
+  await db.prepare('DELETE FROM activities WHERE id = ?').bind(activityId).run();
+  return true;
+}
+
 
