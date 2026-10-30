@@ -21,7 +21,8 @@ export function SandboxedFrame({
 }: SandboxedFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [isFrameReady, setIsFrameReady] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
+  const [, setLastSyncTime] = useState<number | null>(null);
+  const [frameHeight, setFrameHeight] = useState<number>(1250);
   const [currentViewport, setCurrentViewport] = useState<'desktop' | 'tablet' | 'mobile'>(viewport);
 
   const activeViewport = onViewportChange ? viewport : currentViewport;
@@ -51,7 +52,7 @@ export function SandboxedFrame({
     }
   }, [profile, sanitizedCss]);
 
-  // Listen for iframe readiness & heartbeat
+  // Listen for iframe readiness, heartbeat & dynamic height updates
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const data = event.data;
@@ -62,6 +63,8 @@ export function SandboxedFrame({
         sendSyncMessage();
       } else if (data.type === 'CSS_APPLIED') {
         setLastSyncTime(data.timestamp);
+      } else if (data.type === 'FRAME_HEIGHT' && typeof data.height === 'number') {
+        setFrameHeight(Math.max(data.height + 24, 1000));
       }
     };
 
@@ -96,7 +99,7 @@ export function SandboxedFrame({
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+    <div className="flex flex-col bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
       {/* Sandbox Toolbar */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 text-xs select-none">
         <div className="flex items-center gap-3">
@@ -171,11 +174,11 @@ export function SandboxedFrame({
         </div>
       </div>
 
-      {/* Frame Container */}
-      <div className="flex-1 bg-slate-900/50 p-3 sm:p-4 flex items-center justify-center overflow-auto">
+      {/* Frame Container — expands to full content height so desktop scrolls naturally with mouse wheel */}
+      <div className="bg-slate-900/50 p-3 sm:p-4 flex items-start justify-center">
         <div
-          className={`h-full transition-all duration-300 mx-auto rounded-lg overflow-hidden shadow-2xl border border-slate-800 bg-white ${getViewportWidth()}`}
-          style={{ width: '100%', minHeight: '680px' }}
+          className={`transition-all duration-300 mx-auto rounded-lg overflow-hidden shadow-2xl border border-slate-800 bg-white ${getViewportWidth()}`}
+          style={{ width: '100%' }}
         >
           <iframe
             ref={iframeRef}
@@ -184,7 +187,8 @@ export function SandboxedFrame({
             title="Sanitized User Profile Canvas"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
             allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-            className="w-full h-full min-h-[680px] border-none block"
+            style={{ height: `${frameHeight}px` }}
+            className="w-full border-none block"
             onLoad={() => {
               setIsFrameReady(true);
               sendSyncMessage();

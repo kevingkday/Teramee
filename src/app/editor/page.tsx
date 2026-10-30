@@ -117,9 +117,9 @@ function EditorContent() {
   }, [username]);
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-slate-950 flex flex-col">
       <PlatformNavbar currentUsername={username} />
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1">
         {loading && (
           <div className="bg-blue-600/20 text-blue-300 text-[11px] py-1 px-4 text-center border-b border-blue-500/30 flex items-center justify-center gap-2">
             <span className="inline-block w-2.5 h-2.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></span>

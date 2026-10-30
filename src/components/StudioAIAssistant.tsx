@@ -291,7 +291,7 @@ export function StudioAIAssistant({
           </div>
 
           {/* Quick-Prompt Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <div className="flex flex-wrap items-center gap-1.5">
             {QUICK_PROMPTS.map((q) => (
               <button
                 key={q}
@@ -311,7 +311,7 @@ export function StudioAIAssistant({
           </div>
 
           {/* Messages Stream */}
-          <div className="max-h-44 overflow-y-auto space-y-2 pr-1">
+          <div className="space-y-2">
             {messages.map((m) => (
               <div
                 key={m.id}

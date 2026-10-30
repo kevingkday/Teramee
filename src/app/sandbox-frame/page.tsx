@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
+import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { UserProfile } from '@/lib/types';
 import { ProfileCanvas } from '@/components/ProfileCanvas';
-import { THEME_PRESETS } from '@/lib/presets';
 
 export default function SandboxFramePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [sanitizedCss, setSanitizedCss] = useState<string>('');
   const [, startTransition] = useTransition();
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // Notify parent window that sandboxed iframe is ready to receive state
@@ -17,7 +17,6 @@ export default function SandboxFramePage() {
     }
 
     const handleMessage = (event: MessageEvent) => {
-      // Validate event structure
       const data = event.data;
       if (!data || typeof data !== 'object') return;
 
@@ -31,7 +30,6 @@ export default function SandboxFramePage() {
           }
         });
 
-        // Acknowledge receipt
         if (window.parent && window.parent !== window) {
           window.parent.postMessage(
             { type: 'CSS_APPLIED', timestamp: Date.now() },
@@ -44,6 +42,38 @@ export default function SandboxFramePage() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
+
+  // Automatically report full content height to parent so desktop preview doesn't need an internal scrollbar
+  useEffect(() => {
+    if (!profile || typeof window === 'undefined') return;
+
+    const sendHeight = () => {
+      if (!window.parent || window.parent === window) return;
+      const el = rootRef.current;
+      const measured = Math.max(
+        el ? el.scrollHeight : 0,
+        document.body ? document.body.scrollHeight : 0,
+        900
+      );
+      window.parent.postMessage({ type: 'FRAME_HEIGHT', height: measured }, '*');
+    };
+
+    sendHeight();
+    const timer = setTimeout(sendHeight, 250);
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && rootRef.current) {
+      observer = new ResizeObserver(() => {
+        sendHeight();
+      });
+      observer.observe(rootRef.current);
+    }
+
+    return () => {
+      clearTimeout(timer);
+      if (observer) observer.disconnect();
+    };
+  }, [profile, sanitizedCss]);
 
   // Fallback initial profile while waiting for parent postMessage
   if (!profile) {
@@ -59,7 +89,7 @@ export default function SandboxFramePage() {
   }
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden">
+    <div ref={rootRef} className="w-full min-h-screen overflow-x-hidden">
       <ProfileCanvas
         profile={profile}
         sanitizedCss={sanitizedCss}

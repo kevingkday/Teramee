@@ -600,9 +600,9 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-slate-950 text-slate-100">
       {/* Editor Subheader & Action Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-900 border-b border-slate-800 z-10 select-none">
+      <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-900/95 backdrop-blur border-b border-slate-800 select-none">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-pink-400" />
@@ -800,9 +800,9 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
       </div>
 
       {/* Main Split Pane Layout */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row items-start">
         {/* LEFT PANE: Customizer Controls OR Owner Authentication Gate (Width: 42%) */}
-        <div className="w-full md:w-[45%] lg:w-[42%] flex flex-col border-r border-slate-800 bg-slate-900/80 backdrop-blur overflow-hidden">
+        <div className="w-full md:w-[45%] lg:w-[42%] flex flex-col border-b md:border-b-0 md:border-r border-slate-800 bg-slate-900/80 backdrop-blur">
           {isCheckingAuth ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3">
               <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
@@ -811,7 +811,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
             </div>
           ) : !isOwner ? (
             /* OWNER AUTHENTICATION GATE */
-            <div className="flex-1 flex flex-col overflow-y-auto p-5 sm:p-6 space-y-6">
+            <div className="flex-1 flex flex-col p-5 sm:p-6 space-y-6">
               {/* Header Badge */}
               <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-800/90 to-slate-900/90 border border-slate-700/80 shadow-xl space-y-4">
                 <div className="flex items-start gap-3.5">
@@ -1082,7 +1082,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
           ) : (
             <>
               {/* Customizer Tabs Navigation */}
-              <div className="flex items-center border-b border-slate-800 bg-slate-900/90 px-3 pt-2 overflow-x-auto">
+              <div className="flex flex-wrap items-center border-b border-slate-800 bg-slate-900/90 px-3 pt-2 gap-1">
             <button
               type="button"
               onClick={() => setActiveTab('profile')}
@@ -1172,7 +1172,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
           </div>
 
           {/* Left Pane Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div className="p-4 sm:p-5 space-y-6">
             {/* TAB 0: PROFILE INFO & AVATAR */}
             {activeTab === 'profile' && (
               <div className="space-y-5">
@@ -1940,7 +1940,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                         {cssAudit.stats.scopedRuleCount} rules scoped
                       </span>
                     </p>
-                    <pre className="p-2.5 rounded bg-black/60 text-[11px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-36">
+                    <pre className="p-2.5 rounded bg-black/60 text-[11px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap">
                       {cssAudit.sanitizedCss || '/* Empty CSS */'}
                     </pre>
                   </div>
@@ -1973,7 +1973,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                         <span>AST Clean: No malicious rules or unapproved directives detected.</span>
                       </div>
                     ) : (
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      <div className="space-y-1.5">
                         {cssAudit.violations.map((violation, i) => (
                           <div
                             key={i}
@@ -2399,7 +2399,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
         </div>
 
         {/* RIGHT PANE: Live Sandboxed Profile Preview (Width: 58%) */}
-        <div className="w-full md:w-[55%] lg:w-[58%] flex flex-col bg-slate-950 p-3 sm:p-4 overflow-hidden">
+        <div className="w-full md:w-[55%] lg:w-[58%] flex flex-col bg-slate-950 p-3 sm:p-5">
           {!isOwner && (
             <div className="flex items-center justify-between px-3.5 py-2 mb-2 rounded-xl bg-slate-900/95 border border-amber-500/30 text-xs text-amber-300 shadow-md flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -2422,7 +2422,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
               isAdmin={isCurrentUserAdmin}
             />
           ) : (
-            <div className="flex-1 flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl p-4">
+            <div className="flex-1 flex flex-col bg-slate-950 border border-slate-800 rounded-xl shadow-2xl p-4">
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 text-xs">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -2432,7 +2432,7 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                   </span>
                 </div>
               </div>
-              <div className="flex-1 overflow-auto">
+              <div className="flex-1">
                 <ShadowDomSandbox
                   profile={profile}
                   sanitizedCss={cssAudit.sanitizedCss}
