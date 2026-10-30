@@ -2,11 +2,11 @@ import { WeatherWidgetData } from '../../src/lib/types';
 
 export const WEATHER_MCP_TOOL_DEFINITION = {
   name: 'get_weather',
-  description: 'Fetch real-time weather and temperature for any city',
+  description: 'Fetch real-time weather and temperature for any city worldwide',
   inputSchema: {
     type: 'object',
     properties: {
-      city: { type: 'string', description: 'City or location name' },
+      city: { type: 'string', description: 'City or location name (e.g. Vancouver, Tokyo, New York)' },
       units: {
         type: 'string',
         enum: ['celsius', 'fahrenheit'],
@@ -53,40 +53,55 @@ export function mapWmoWeatherCode(code: number): {
   return { condition: 'Partly Cloudy', iconType: 'cloud' };
 }
 
+interface GeoResult {
+  name: string;
+  latitude: number;
+  longitude: number;
+  country?: string;
+  admin1?: string;
+}
+
+async function lookupCityCoordinates(query: string): Promise<GeoResult | null> {
+  const candidates = [query.trim()];
+  if (query.includes(',')) {
+    const beforeComma = query.split(',')[0].trim();
+    if (beforeComma && !candidates.includes(beforeComma)) {
+      candidates.push(beforeComma);
+    }
+  }
+
+  for (const candidate of candidates) {
+    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
+      candidate
+    )}&count=1&language=en&format=json`;
+    const geoRes = await fetch(geoUrl, {
+      headers: { Accept: 'application/json' }
+    });
+    if (!geoRes.ok) continue;
+
+    const geoData = (await geoRes.json()) as { results?: GeoResult[] };
+    if (geoData.results && geoData.results.length > 0) {
+      return geoData.results[0];
+    }
+  }
+
+  return null;
+}
+
 /**
  * Executes the `get_weather` MCP tool against Open-Meteo Geocoding & Forecast APIs.
  */
 export async function executeGetWeatherTool(args: {
   city: string;
   units?: 'celsius' | 'fahrenheit';
-}): Promise<WeatherWidgetData> {
-  const rawCity = (args.city || 'Montreal').trim();
+}): Promise<WeatherWidgetData & { resolvedByGeocode?: boolean }> {
+  const rawCity = (args.city || '').trim() || 'Vancouver';
   const units: 'celsius' | 'fahrenheit' =
     args.units === 'fahrenheit' ? 'fahrenheit' : 'celsius';
   const unitSymbol = units === 'fahrenheit' ? '°F' : '°C';
 
   try {
-    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-      rawCity
-    )}&count=1`;
-    const geoRes = await fetch(geoUrl, {
-      headers: { Accept: 'application/json' }
-    });
-
-    if (!geoRes.ok) {
-      throw new Error(`Geocoding HTTP ${geoRes.status}`);
-    }
-
-    const geoData = (await geoRes.json()) as {
-      results?: Array<{
-        name: string;
-        latitude: number;
-        longitude: number;
-        country?: string;
-      }>;
-    };
-
-    const match = geoData.results?.[0];
+    const match = await lookupCityCoordinates(rawCity);
     if (!match) {
       return {
         city: rawCity,
@@ -96,7 +111,8 @@ export async function executeGetWeatherTool(args: {
         windspeed: 11,
         condition: 'Mainly Clear',
         iconType: 'sun',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        resolvedByGeocode: false
       };
     }
 
@@ -141,7 +157,8 @@ export async function executeGetWeatherTool(args: {
       windspeed,
       condition: mapped.condition,
       iconType: mapped.iconType,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      resolvedByGeocode: true
     };
   } catch {
     // Graceful edge fallback if external network is unavailable
@@ -153,7 +170,8 @@ export async function executeGetWeatherTool(args: {
       windspeed: 12,
       condition: 'Partly Cloudy',
       iconType: 'cloud',
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      resolvedByGeocode: false
     };
   }
 }
@@ -210,7 +228,7 @@ export async function dispatchWeatherMcpRpc(
       };
     }
 
-    const city = params.arguments?.city || 'Montreal';
+    const city = params.arguments?.city || 'Vancouver';
     const units = params.arguments?.units || 'celsius';
     const weatherResult = await executeGetWeatherTool({ city, units });
 
@@ -293,4 +311,3 @@ export async function handleWeatherMcpRequest(request: Request): Promise<Respons
     );
   }
 }
-
