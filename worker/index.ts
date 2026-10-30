@@ -22,13 +22,21 @@ import {
   getAdminDashboardDataFromDb,
   adminUpdateUserInDb,
   adminDeleteUserFromDb,
-  adminDeleteActivityFromDb
+  adminDeleteActivityFromDb,
+  getProfileWidgetsFromDb,
+  upsertProfileWidgetInDb
 } from './db';
 import { sanitizeAndScopeCss } from '../src/lib/sanitize-css';
-import { UserProfile } from '../src/lib/types';
+import { UserProfile, LayoutBlock } from '../src/lib/types';
+import { handleWeatherMcpRequest } from './mcp/weather';
+import {
+  runStudioAssistantWithMcp,
+  CloudflareAIBinding
+} from './mcp/assistant';
 
 export interface Env {
   DB: D1Database;
+  AI?: CloudflareAIBinding;
   ASSETS: {
     fetch: (request: Request) => Promise<Response>;
   };
@@ -103,7 +111,11 @@ function getAuthenticatedUser(request: Request): string | null {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx?: { waitUntil?: (promise: Promise<unknown>) => void }
+  ): Promise<Response> {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
@@ -719,6 +731,76 @@ export default {
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         return jsonResponse({ error: `Failed to load recent visitors: ${message}` }, 500);
+      }
+    }
+
+    // --- MCP WEATHER SERVER & STUDIO AI ASSISTANT ENDPOINTS ---
+
+    if (pathname === '/api/mcp/weather') {
+      return handleWeatherMcpRequest(request);
+    }
+
+    if (pathname === '/api/studio/assistant' && request.method === 'POST') {
+      try {
+        const body = (await request.json()) as {
+          username?: string;
+          prompt?: string;
+          currentLayout?: LayoutBlock[];
+          saveImmediately?: boolean;
+        };
+
+        const targetUsername = (body.username || '').toLowerCase().trim() || 'glitterqueen99';
+        const authUser = getAuthenticatedUser(request);
+        const isAdmin = await isUserAdminInDb(env.DB, authUser);
+
+        if (!authUser || (authUser.toLowerCase() !== targetUsername && !isAdmin)) {
+          return jsonResponse(
+            {
+              error: `Please log in as @${targetUsername} to use the Studio AI Assistant.`
+            },
+            401
+          );
+        }
+
+        if (!body.prompt || !body.prompt.trim()) {
+          return jsonResponse({ error: 'Prompt is required.' }, 400);
+        }
+
+        const assistantRes = await runStudioAssistantWithMcp(
+          {
+            username: targetUsername,
+            prompt: body.prompt,
+            currentLayout: body.currentLayout || []
+          },
+          env.AI
+        );
+
+        if (body.saveImmediately && assistantRes.widget) {
+          await upsertProfileWidgetInDb(env.DB, targetUsername, assistantRes.widget);
+        }
+
+        return jsonResponse(assistantRes);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return jsonResponse(
+          { error: `Studio Assistant error: ${message}` },
+          500
+        );
+      }
+    }
+
+    const widgetsMatch = pathname.match(/^\/api\/profiles\/([^/]+)\/widgets$/);
+    if (widgetsMatch && request.method === 'GET') {
+      try {
+        const profileUsername = decodeURIComponent(widgetsMatch[1]);
+        const widgets = await getProfileWidgetsFromDb(env.DB, profileUsername, ctx);
+        return jsonResponse({ widgets });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return jsonResponse(
+          { error: `Failed to load profile widgets: ${message}` },
+          500
+        );
       }
     }
 

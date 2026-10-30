@@ -5,11 +5,16 @@ import {
   DirectMessage,
   ActivityItem,
   ActivityActionType,
-  ProfileVisitor
+  ProfileVisitor,
+  ProfileWidget,
+  WeatherWidgetConfig,
+  WeatherWidgetData,
+  LayoutBlock
 } from '../src/lib/types';
 import { D1Database, ensureSchema } from './schema';
 import { sanitizeUserHtml } from '../src/lib/sanitize-html';
 import { THEME_PRESETS } from '../src/lib/presets';
+import { executeGetWeatherTool } from './mcp/weather';
 import {
   INITIAL_PROFILES,
   INITIAL_ACTIVITIES,
@@ -120,6 +125,8 @@ export async function getProfileFromDb(
         ? parsedPhotos
         : INITIAL_PROFILES[normalized]?.photos || [];
 
+    const widgets = await getProfileWidgetsFromDb(db, normalized);
+
     return {
       username: profileRow.username,
       email:
@@ -148,6 +155,7 @@ export async function getProfileFromDb(
       rawCss: profileRow.raw_css || '',
       topFriends: JSON.parse(profileRow.top_friends_json || '[]'),
       photos: finalPhotos,
+      widgets,
       friends: JSON.parse(profileRow.friends_json || '[]'),
       favorites: JSON.parse(profileRow.favorites_json || '[]'),
       guestbook,
@@ -235,6 +243,9 @@ export async function saveProfileToDb(
       updatedAt
     )
     .run();
+
+  // Persist widgets from profile.widgets and/or widget layout blocks into profile_widgets
+  await syncProfileWidgetsInDb(db, normalized, profile.widgets || [], profile.layout || []);
 
   const updated = await getProfileFromDb(db, normalized);
   return updated || {
@@ -1191,5 +1202,204 @@ export async function adminDeleteActivityFromDb(
   await db.prepare('DELETE FROM activities WHERE id = ?').bind(activityId).run();
   return true;
 }
+
+interface ProfileWidgetRow {
+  id: string;
+  username: string;
+  widget_type: string;
+  title: string;
+  config_json: string;
+  cached_data_json: string;
+  last_synced_at: string | null;
+  created_at: string;
+}
+
+const WIDGET_CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutes
+
+export async function refreshWeatherWidgetRowInDb(
+  db: D1Database,
+  row: ProfileWidgetRow
+): Promise<WeatherWidgetData | null> {
+  try {
+    const config = JSON.parse(row.config_json || '{}') as WeatherWidgetConfig;
+    const freshData = await executeGetWeatherTool({
+      city: config.city || 'Montreal',
+      units: config.units || 'celsius'
+    });
+    const nowIso = new Date().toISOString();
+    await db
+      .prepare(
+        'UPDATE profile_widgets SET cached_data_json = ?, last_synced_at = ? WHERE id = ?'
+      )
+      .bind(JSON.stringify(freshData), nowIso, row.id)
+      .run();
+    return freshData;
+  } catch (err) {
+    console.error('Failed to refresh weather widget cache:', err);
+    return null;
+  }
+}
+
+export async function getProfileWidgetsFromDb(
+  db: D1Database,
+  username: string,
+  executionCtx?: { waitUntil?: (promise: Promise<unknown>) => void }
+): Promise<ProfileWidget[]> {
+  const cleanUser =
+    username.toLowerCase().trim() === 'tom' ? 'kevin' : username.toLowerCase().trim();
+
+  try {
+    const res = await db
+      .prepare('SELECT * FROM profile_widgets WHERE username = ? ORDER BY created_at ASC')
+      .bind(cleanUser)
+      .all<ProfileWidgetRow>();
+
+    const rows = res.results || [];
+    const nowMs = Date.now();
+    const widgets: ProfileWidget[] = [];
+
+    for (const row of rows) {
+      let config: WeatherWidgetConfig = { city: 'Montreal', units: 'celsius' };
+      try {
+        config = JSON.parse(row.config_json || '{}');
+      } catch {
+        // default config
+      }
+
+      let cachedData: WeatherWidgetData | undefined;
+      try {
+        const parsed = JSON.parse(row.cached_data_json || '{}');
+        if (parsed && typeof parsed.temp === 'number') {
+          cachedData = parsed;
+        }
+      } catch {
+        // empty cache
+      }
+
+      const lastSyncedMs = row.last_synced_at ? new Date(row.last_synced_at).getTime() : 0;
+      const isStale =
+        !cachedData ||
+        Number.isNaN(lastSyncedMs) ||
+        nowMs - lastSyncedMs > WIDGET_CACHE_TTL_MS;
+
+      if (isStale && row.widget_type === 'weather') {
+        if (!cachedData) {
+          // Cold cache: fetch synchronously once so initial render has real data
+          const fresh = await refreshWeatherWidgetRowInDb(db, row);
+          if (fresh) cachedData = fresh;
+        } else if (executionCtx?.waitUntil) {
+          // Stale-While-Revalidate in background
+          executionCtx.waitUntil(refreshWeatherWidgetRowInDb(db, row));
+        } else {
+          // Fire and forget background refresh
+          void refreshWeatherWidgetRowInDb(db, row);
+        }
+      }
+
+      widgets.push({
+        id: row.id,
+        username: row.username,
+        type: row.widget_type,
+        title: row.title,
+        config,
+        initialData: cachedData,
+        cachedData,
+        lastSyncedAt: row.last_synced_at || undefined,
+        createdAt: row.created_at
+      });
+    }
+
+    return widgets;
+  } catch (err) {
+    console.error('Error loading profile widgets:', err);
+    return [];
+  }
+}
+
+export async function upsertProfileWidgetInDb(
+  db: D1Database,
+  username: string,
+  widget: ProfileWidget
+): Promise<ProfileWidget> {
+  const cleanUser =
+    username.toLowerCase().trim() === 'tom' ? 'kevin' : username.toLowerCase().trim();
+  const nowIso = new Date().toISOString();
+  const dataToCache = widget.initialData || widget.cachedData || {};
+
+  await db
+    .prepare(`
+      INSERT INTO profile_widgets (
+        id, username, widget_type, title, config_json, cached_data_json, last_synced_at, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        title = excluded.title,
+        config_json = excluded.config_json,
+        cached_data_json = CASE
+          WHEN excluded.cached_data_json != '{}' THEN excluded.cached_data_json
+          ELSE profile_widgets.cached_data_json
+        END,
+        last_synced_at = excluded.last_synced_at
+    `)
+    .bind(
+      widget.id,
+      cleanUser,
+      widget.type || 'weather',
+      widget.title || 'Weather Forecast',
+      JSON.stringify(widget.config || { city: 'Montreal', units: 'celsius' }),
+      JSON.stringify(dataToCache),
+      nowIso,
+      widget.createdAt || nowIso
+    )
+    .run();
+
+  return {
+    ...widget,
+    username: cleanUser,
+    cachedData: widget.initialData || widget.cachedData,
+    lastSyncedAt: nowIso,
+    createdAt: widget.createdAt || nowIso
+  };
+}
+
+export async function syncProfileWidgetsInDb(
+  db: D1Database,
+  username: string,
+  widgets: ProfileWidget[],
+  layout: LayoutBlock[]
+): Promise<void> {
+  const cleanUser =
+    username.toLowerCase().trim() === 'tom' ? 'kevin' : username.toLowerCase().trim();
+
+  // Collect widgets from explicit `widgets` list and any widget blocks in `layout`
+  const mergedMap = new Map<string, ProfileWidget>();
+
+  for (const w of widgets || []) {
+    if (w && w.id) {
+      mergedMap.set(w.id, w);
+    }
+  }
+
+  for (const block of layout || []) {
+    if (
+      block.widgetType === 'weather' ||
+      String(block.id).startsWith('widget-weather')
+    ) {
+      const existing = mergedMap.get(String(block.id));
+      mergedMap.set(String(block.id), {
+        id: String(block.id),
+        username: cleanUser,
+        type: block.widgetType || 'weather',
+        title: block.title || existing?.title || 'Weather Radar',
+        config: block.widgetConfig || existing?.config || { city: 'Montreal', units: 'celsius' },
+        initialData: block.widgetData || existing?.initialData || existing?.cachedData
+      });
+    }
+  }
+
+  for (const widget of mergedMap.values()) {
+    await upsertProfileWidgetInDb(db, cleanUser, widget);
+  }
+}
+
 
 

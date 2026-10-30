@@ -6,8 +6,10 @@ import {
   DirectMessage,
   ActivityItem,
   ActivityActionType,
-  ProfileVisitor
+  ProfileVisitor,
+  ProfileWidget
 } from './types';
+import { executeGetWeatherTool } from '../../worker/mcp/weather';
 import { THEME_PRESETS } from './presets';
 import { sanitizeUserHtml } from './sanitize-html';
 import { sanitizeAndScopeCss } from './sanitize-css';
@@ -689,5 +691,104 @@ export function adminDeleteActivity(activityId: string): boolean {
   persistActivitiesStore(next);
   return true;
 }
+
+const WIDGET_CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutes
+
+export async function getProfileWidgets(username: string): Promise<ProfileWidget[]> {
+  const prof = getProfile(username);
+  if (!prof) return [];
+
+  const widgetsMap = new Map<string, ProfileWidget>();
+  for (const w of prof.widgets || []) {
+    if (w && w.id) widgetsMap.set(w.id, { ...w });
+  }
+
+  for (const block of prof.layout || []) {
+    if (block.widgetType === 'weather' || String(block.id).startsWith('widget-weather')) {
+      const existing = widgetsMap.get(String(block.id));
+      widgetsMap.set(String(block.id), {
+        id: String(block.id),
+        username: prof.username,
+        type: block.widgetType || 'weather',
+        title: block.title || existing?.title || 'Weather Radar',
+        config: block.widgetConfig || existing?.config || { city: 'Montreal', units: 'celsius' },
+        initialData: block.widgetData || existing?.initialData || existing?.cachedData,
+        cachedData: block.widgetData || existing?.cachedData || existing?.initialData,
+        lastSyncedAt: existing?.lastSyncedAt
+      });
+    }
+  }
+
+  const nowMs = Date.now();
+  const results: ProfileWidget[] = [];
+
+  for (const widget of widgetsMap.values()) {
+    const lastMs = widget.lastSyncedAt ? new Date(widget.lastSyncedAt).getTime() : 0;
+    const isStale =
+      !widget.cachedData ||
+      Number.isNaN(lastMs) ||
+      nowMs - lastMs > WIDGET_CACHE_TTL_MS;
+
+    if (isStale && widget.type === 'weather') {
+      if (!widget.cachedData) {
+        const fresh = await executeGetWeatherTool({
+          city: widget.config?.city || 'Montreal',
+          units: widget.config?.units || 'celsius'
+        });
+        widget.cachedData = fresh;
+        widget.initialData = fresh;
+        widget.lastSyncedAt = new Date().toISOString();
+      } else {
+        // Stale-while-revalidate background refresh
+        void executeGetWeatherTool({
+          city: widget.config?.city || 'Montreal',
+          units: widget.config?.units || 'celsius'
+        }).then((fresh) => {
+          upsertProfileWidget(prof.username, {
+            ...widget,
+            cachedData: fresh,
+            initialData: fresh,
+            lastSyncedAt: new Date().toISOString()
+          });
+        });
+      }
+    }
+
+    results.push(widget);
+  }
+
+  return results;
+}
+
+export function upsertProfileWidget(username: string, widget: ProfileWidget): ProfileWidget {
+  const store = loadStore();
+  const normalized =
+    username.toLowerCase().trim() === 'tom' ? 'kevin' : username.toLowerCase().trim();
+  const prof = store[normalized];
+  if (!prof) return widget;
+
+  const list = Array.isArray(prof.widgets) ? [...prof.widgets] : [];
+  const idx = list.findIndex((w) => w.id === widget.id);
+  const nowIso = new Date().toISOString();
+  const updatedWidget: ProfileWidget = {
+    ...widget,
+    username: normalized,
+    cachedData: widget.cachedData || widget.initialData,
+    lastSyncedAt: widget.lastSyncedAt || nowIso,
+    createdAt: widget.createdAt || nowIso
+  };
+
+  if (idx >= 0) {
+    list[idx] = updatedWidget;
+  } else {
+    list.push(updatedWidget);
+  }
+
+  prof.widgets = list;
+  store[normalized] = prof;
+  persistStore(store);
+  return updatedWidget;
+}
+
 
 

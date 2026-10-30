@@ -109,7 +109,19 @@ export async function ensureSchema(db: D1Database): Promise<void> {
       viewer_avatar_url TEXT DEFAULT '',
       viewed_at TEXT NOT NULL
     )`,
-    `CREATE INDEX IF NOT EXISTS idx_profile_views_lookup ON profile_views(profile_username, viewed_at DESC)`
+    `CREATE INDEX IF NOT EXISTS idx_profile_views_lookup ON profile_views(profile_username, viewed_at DESC)`,
+    `CREATE TABLE IF NOT EXISTS profile_widgets (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      widget_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      config_json TEXT NOT NULL,
+      cached_data_json TEXT DEFAULT '{}',
+      last_synced_at TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (username) REFERENCES profiles(username)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_widgets_username ON profile_widgets(username)`
   ];
 
   for (const sql of statements) {

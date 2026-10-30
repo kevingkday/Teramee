@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { parseYouTubeUrl, parseSpotifyUrl } from '@/lib/media-utils';
 import { RecentVisitors } from './RecentVisitors';
+import { RetroWeatherWidget } from './widgets/RetroWeatherWidget';
 
 interface ProfileCanvasProps {
   profile: UserProfile;
@@ -436,6 +437,33 @@ export function ProfileCanvas({
     .filter((b) => b.column === 'right' && b.visible)
     .sort((a, b) => a.order - b.order);
 
+  const isWeatherBlock = (block: { id: string; widgetType?: string }) =>
+    block.widgetType === 'weather' ||
+    String(block.id).startsWith('widget-weather') ||
+    block.id === 'weatherWidget';
+
+  const renderWeatherBlock = (block: {
+    id: string;
+    title: string;
+    widgetConfig?: { city: string; units: 'celsius' | 'fahrenheit' };
+    widgetData?: import('@/lib/types').WeatherWidgetData;
+  }) => {
+    const matchedWidget = (profile.widgets || []).find((w) => w.id === block.id);
+    const resolvedConfig = block.widgetConfig || matchedWidget?.config;
+    const resolvedData =
+      block.widgetData || matchedWidget?.initialData || matchedWidget?.cachedData;
+
+    return (
+      <RetroWeatherWidget
+        widgetId={String(block.id)}
+        username={profile.username}
+        title={block.title || matchedWidget?.title}
+        config={resolvedConfig}
+        initialData={resolvedData}
+      />
+    );
+  };
+
   const renderPhotosBlock = (title?: string) => (
     <div className="profile-photos-block">
       <div
@@ -754,6 +782,7 @@ export function ProfileCanvas({
                 {block.id === 'recentVisitors' && (
                   <RecentVisitors username={profile.username} title={block.title} />
                 )}
+                {isWeatherBlock(block) && renderWeatherBlock(block)}
               </div>
             ))}
           </div>
@@ -766,6 +795,7 @@ export function ProfileCanvas({
                 {block.id === 'recentVisitors' && (
                   <RecentVisitors username={profile.username} title={block.title} />
                 )}
+                {isWeatherBlock(block) && renderWeatherBlock(block)}
                 {/* Media / Audio Player Block */}
                 {block.id === 'mediaPlayer' && (
                   <div className="player-cassette rounded-lg p-4 border bg-black/5">

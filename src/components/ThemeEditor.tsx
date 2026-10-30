@@ -7,13 +7,15 @@ import {
   LayoutBlock,
   SanitizedCssResult,
   FriendConnection,
-  ProfilePhoto
+  ProfilePhoto,
+  ProfileWidget
 } from '@/lib/types';
 import { THEME_PRESETS } from '@/lib/presets';
 import { sanitizeAndScopeCss } from '@/lib/sanitize-css';
 import { parseYouTubeUrl, parseSpotifyUrl, POPULAR_RETRO_SOUNDTRACKS } from '@/lib/media-utils';
 import { SandboxedFrame } from './SandboxedFrame';
 import { ShadowDomSandbox } from './ShadowDomSandbox';
+import { StudioAIAssistant } from './StudioAIAssistant';
 import {
   Palette,
   Layout,
@@ -399,6 +401,42 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
       layout: prev.layout.map((b) =>
         b.id === id ? { ...b, visible: !b.visible } : b
       )
+    }));
+  };
+
+  const handleAddWidgetFromAssistant = (widget: ProfileWidget) => {
+    if (!isOwner) return;
+    setProfile((prev) => {
+      const nextWidgets = [...(prev.widgets || []).filter((w) => w.id !== widget.id), widget];
+      const newBlock: LayoutBlock = {
+        id: widget.id,
+        title: widget.title,
+        column: 'left',
+        order: 1,
+        visible: true,
+        widgetType: widget.type,
+        widgetConfig: widget.config,
+        widgetData: widget.initialData || widget.cachedData
+      };
+      const existingBlocks = prev.layout.filter((b) => b.id !== widget.id);
+      const nextLayout = [newBlock, ...existingBlocks].map((b, i) => ({
+        ...b,
+        order: i + 1
+      }));
+      return {
+        ...prev,
+        widgets: nextWidgets,
+        layout: nextLayout
+      };
+    });
+  };
+
+  const handleDeleteWidgetBlock = (id: string) => {
+    if (!isOwner) return;
+    setProfile((prev) => ({
+      ...prev,
+      layout: prev.layout.filter((b) => b.id !== id),
+      widgets: (prev.widgets || []).filter((w) => w.id !== id)
     }));
   };
 
@@ -1838,6 +1876,16 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                         >
                           <ArrowDown className="w-3 h-3" />
                         </button>
+                        {(block.widgetType || String(block.id).startsWith('widget-')) && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteWidgetBlock(String(block.id))}
+                            title="Remove Widget Block"
+                            className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 text-rose-400 border border-rose-800/40 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -2339,6 +2387,13 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
               </div>
             )}
           </div>
+
+          {/* Collapsible Retro AI Studio Assistant (MCP Widget Builder) */}
+          <StudioAIAssistant
+            username={profile.username}
+            currentLayout={profile.layout}
+            onAddWidget={handleAddWidgetFromAssistant}
+          />
             </>
           )}
         </div>

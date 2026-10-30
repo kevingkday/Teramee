@@ -129,11 +129,10 @@ export function SandboxedFrame({
               type="button"
               onClick={() => setViewport('desktop')}
               title="Desktop View (100%)"
-              className={`p-1.5 rounded transition-colors ${
-                activeViewport === 'desktop'
+              className={`p-1.5 rounded transition-colors ${activeViewport === 'desktop'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
-              }`}
+                }`}
             >
               <Monitor className="w-3.5 h-3.5" />
             </button>
@@ -141,11 +140,10 @@ export function SandboxedFrame({
               type="button"
               onClick={() => setViewport('tablet')}
               title="Tablet View (768px)"
-              className={`p-1.5 rounded transition-colors ${
-                activeViewport === 'tablet'
+              className={`p-1.5 rounded transition-colors ${activeViewport === 'tablet'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
-              }`}
+                }`}
             >
               <Tablet className="w-3.5 h-3.5" />
             </button>
@@ -153,11 +151,10 @@ export function SandboxedFrame({
               type="button"
               onClick={() => setViewport('mobile')}
               title="Mobile View (390px)"
-              className={`p-1.5 rounded transition-colors ${
-                activeViewport === 'mobile'
+              className={`p-1.5 rounded transition-colors ${activeViewport === 'mobile'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
-              }`}
+                }`}
             >
               <Smartphone className="w-3.5 h-3.5" />
             </button>

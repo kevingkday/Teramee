@@ -25,7 +25,38 @@ export type LayoutBlockId =
   | 'statusBlurb'
   | 'interests'
   | 'photos'
-  | 'recentVisitors';
+  | 'recentVisitors'
+  | 'weatherWidget'
+  | string;
+
+export interface WeatherWidgetConfig {
+  city: string;
+  units: 'celsius' | 'fahrenheit';
+}
+
+export interface WeatherWidgetData {
+  city?: string;
+  country?: string;
+  temp: number;
+  units: '°C' | '°F' | string;
+  weathercode?: number;
+  windspeed?: number;
+  condition: string;
+  iconType?: 'sun' | 'cloud' | 'rain' | 'snow' | 'storm';
+  updatedAt?: string;
+}
+
+export interface ProfileWidget {
+  id: string;
+  username?: string;
+  type: 'weather' | string;
+  title: string;
+  config: WeatherWidgetConfig;
+  initialData?: WeatherWidgetData;
+  cachedData?: WeatherWidgetData;
+  lastSyncedAt?: string;
+  createdAt?: string;
+}
 
 export type ActivityActionType =
   | 'PROFILE_UPDATED'
@@ -70,6 +101,9 @@ export interface LayoutBlock {
   column: 'left' | 'right';
   order: number;
   visible: boolean;
+  widgetType?: 'weather' | string;
+  widgetConfig?: WeatherWidgetConfig;
+  widgetData?: WeatherWidgetData;
 }
 
 export interface FriendConnection {
@@ -125,6 +159,7 @@ export interface UserProfile {
   rawCss: string;
   topFriends: FriendConnection[];
   photos?: ProfilePhoto[];
+  widgets?: ProfileWidget[];
   guestbook: GuestbookEntry[];
   friends?: string[];
   favorites?: string[];
