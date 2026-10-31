@@ -9,16 +9,29 @@ import {
   Sparkles,
   User,
   Palette,
-  ExternalLink,
   Mail,
   LogIn,
   LogOut,
   Loader2,
   X,
   Lock,
-  KeyRound
+  KeyRound,
+  Menu
 } from 'lucide-react';
 import { InboxModal } from './InboxModal';
+
+const PREVIEW_PROFILES = [
+  { value: 'kevin', label: 'Kevin (Classic 2006)' },
+  { value: 'glitterqueen99', label: 'glitterqueen99 (Scene)' },
+  { value: 'sarah', label: 'Sarah (Indie Pop)' },
+  { value: 'alex', label: 'Alex (Garage Rock)' },
+  { value: 'maya', label: 'Maya (Pixel Art)' },
+  { value: 'jordan', label: 'Jordan (DJ Beats)' },
+  { value: 'vampirekitten', label: 'VampireKitten (Goth)' },
+  { value: 'cybergoth', label: 'CyberGoth (Industrial)' },
+  { value: 'pixeldoll', label: 'PixelDoll (Kawaii)' },
+  { value: 'neonskater', label: 'NeonSkater (Skate Punk)' }
+];
 
 interface PlatformNavbarProps {
   currentUsername?: string;
@@ -43,6 +56,8 @@ export function PlatformNavbar({
   const [loginError, setLoginError] = useState<string>('');
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
+  const [menuPath, setMenuPath] = useState<string | null>(null);
+  const mobileOpen = menuPath === pathname;
 
   const fetchUnread = () => {
     fetch('/api/auth/me')
@@ -82,6 +97,8 @@ export function PlatformNavbar({
     window.addEventListener('open-login-modal', handleOpenLogin);
     return () => window.removeEventListener('open-login-modal', handleOpenLogin);
   }, []);
+
+  const closeMenu = () => setMenuPath(null);
 
   const handleLogout = async () => {
     try {
@@ -130,35 +147,25 @@ export function PlatformNavbar({
   return (
     <header
       id="platform-navbar"
-      className="sticky top-0 z-[100] w-full border-b border-slate-700 bg-slate-900/95 backdrop-blur-md text-white shadow-lg transition-colors"
+      className="sticky top-0 z-[100] w-full max-w-full overflow-x-clip border-b border-slate-700 bg-slate-900/95 backdrop-blur-md text-white shadow-lg"
       style={{
         // Host UI defense: fixed platform isolation styles that cannot be inherited
         isolation: 'isolate',
         pointerEvents: 'auto'
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand logo & nostalgic flair */}
-        <div className="flex items-center gap-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 group"
-          >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-pink-500 flex items-center justify-center shadow-md shadow-pink-500/20 group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5 text-white animate-pulse" />
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-2 px-3 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link href="/" className="flex min-w-0 items-center gap-2">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-pink-500 shadow-md shadow-pink-500/20">
+              <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <div>
-              <span className="text-xl font-black tracking-tight bg-gradient-to-r from-cyan-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
-                Teramee
-              </span>
-              <span className="text-xs ml-2 px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 font-mono border border-pink-500/30">
-                teramee.com
-              </span>
-            </div>
+            <span className="truncate text-lg font-black tracking-tight bg-gradient-to-r from-cyan-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
+              Teramee
+            </span>
           </Link>
 
-          {/* Navigation links */}
-          <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
+          <nav className="hidden lg:flex items-center gap-1 text-sm font-medium">
             <Link
               href={currentUser ? `/editor?user=${currentUser}` : '/editor?user=glitterqueen99'}
               className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
@@ -168,7 +175,8 @@ export function PlatformNavbar({
               }`}
             >
               <Palette className="w-4 h-4" />
-              Theme Studio
+              <span className="hidden xl:inline">Theme Studio</span>
+              <span className="xl:hidden">Studio</span>
             </Link>
 
             <Link
@@ -180,7 +188,8 @@ export function PlatformNavbar({
               }`}
             >
               <User className="w-4 h-4" />
-              Member Profiles
+              <span className="hidden xl:inline">Member Profiles</span>
+              <span className="xl:hidden">Profiles</span>
             </Link>
 
             {isAdmin && (
@@ -193,158 +202,205 @@ export function PlatformNavbar({
                 }`}
               >
                 <ShieldCheck className="w-4 h-4" />
-                Tech & Security
+                <span className="hidden xl:inline">Tech & Security</span>
+                <span className="xl:hidden">Security</span>
               </Link>
             )}
           </nav>
         </div>
 
-        {/* Right side controls: Profile Switcher & CTA */}
-        <div className="flex items-center gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
           {onSelectUser && (
-            <div className="hidden sm:flex items-center gap-2 bg-slate-800/80 px-2.5 py-1.5 rounded-lg border border-slate-700">
-              <span className="text-xs text-slate-400 font-mono">Preview:</span>
+            <div className="hidden xl:flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1.5">
+              <span className="font-mono text-xs text-slate-400">Preview</span>
               <select
                 value={currentUsername}
                 onChange={(e) => onSelectUser(e.target.value)}
                 aria-label="Switch User Profile"
-                className="bg-transparent text-xs font-semibold text-blue-300 focus:outline-none cursor-pointer max-w-[140px] truncate"
+                className="max-w-[9rem] cursor-pointer truncate bg-transparent text-xs font-semibold text-blue-300 focus:outline-none"
               >
-                <option value="kevin" className="bg-slate-800 text-white">Kevin (Classic 2006)</option>
-                <option value="glitterqueen99" className="bg-slate-800 text-white">glitterqueen99 (Scene)</option>
-                <option value="sarah" className="bg-slate-800 text-white">Sarah (Indie Pop)</option>
-                <option value="alex" className="bg-slate-800 text-white">Alex (Garage Rock)</option>
-                <option value="maya" className="bg-slate-800 text-white">Maya (Pixel Art)</option>
-                <option value="jordan" className="bg-slate-800 text-white">Jordan (DJ Beats)</option>
-                <option value="vampirekitten" className="bg-slate-800 text-white">VampireKitten (Goth)</option>
-                <option value="cybergoth" className="bg-slate-800 text-white">CyberGoth (Industrial)</option>
-                <option value="pixeldoll" className="bg-slate-800 text-white">PixelDoll (Kawaii)</option>
-                <option value="neonskater" className="bg-slate-800 text-white">NeonSkater (Skate Punk)</option>
+                {PREVIEW_PROFILES.map((profile) => (
+                  <option key={profile.value} value={profile.value} className="bg-slate-800 text-white">
+                    {profile.label}
+                  </option>
+                ))}
               </select>
             </div>
           )}
 
-          {/* Sandbox Status Badge (Admin Only) */}
-          {isAdmin && (
-            <Link
-              href="/technology"
-              title="Sandbox Defense Active: User CSS is strictly isolated in an iframe and AST sanitized. Click to learn how."
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors"
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span className="hidden lg:inline">Sandbox:</span>
-              <span className="font-mono text-emerald-300 uppercase">Secure</span>
-            </Link>
-          )}
-
-          {/* Direct Messages Mail Button (Visible when logged in) */}
           {currentUser && (
             <button
               type="button"
               onClick={() => setShowInbox(true)}
-              className="relative p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-              title="Open Direct Messages Inbox"
+              className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+              title="Messages"
+              aria-label={unreadCount > 0 ? `Messages, ${unreadCount} unread` : 'Messages'}
             >
-              <Mail className="w-4 h-4 text-cyan-400" />
+              <Mail className="h-4 w-4 text-cyan-400" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-pink-500 text-white animate-pulse shadow-sm">
-                  {unreadCount}
+                <span className="absolute right-1 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-pink-500 px-0.5 text-[9px] font-bold leading-none text-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
           )}
 
-          {/* User Auth Section: Logged-in profile badge & Log Out OR Log In & Claim buttons */}
           {currentUser ? (
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-700/80">
+            <>
               <Link
                 href={`/user/${currentUser}`}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-xs text-white transition-all group"
-                title={`Logged in as ${currentDisplayName || currentUser} (@${currentUser}). Click to view profile.`}
+                className="inline-flex h-9 items-center gap-2 rounded-lg px-1.5 text-slate-200 transition-colors hover:bg-slate-800"
+                aria-label={`View profile for @${currentUser}`}
+                title={`View @${currentUser}`}
               >
-                <div className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={currentAvatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'}
-                    alt={currentUser}
-                    className="w-5 h-5 rounded-full object-cover border border-emerald-400"
-                  />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-slate-900" />
-                </div>
-                <div className="flex flex-col text-left leading-none">
-                  <span className="font-mono text-emerald-300 font-bold text-[11px] group-hover:text-emerald-200">
-                    @{currentUser}
-                  </span>
-                  <span className="text-[9px] text-slate-400 font-normal">
-                    Online
-                  </span>
-                </div>
-              </Link>
-
-              <Link
-                href={`/editor?user=${currentUser}`}
-                className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-semibold text-indigo-200 transition-colors"
-                title="Open Customizer Studio for your profile"
-              >
-                <Palette className="w-3.5 h-3.5 text-indigo-300" />
-                <span className="hidden md:inline">Studio</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={currentAvatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'}
+                  alt=""
+                  className="h-7 w-7 rounded-full object-cover"
+                />
+                <span className="hidden font-mono text-xs font-semibold xl:inline">@{currentUser}</span>
               </Link>
 
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                  className={`hidden h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold lg:inline-flex ${
                     pathname.startsWith('/admin')
-                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
-                      : 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/40 text-amber-300'
+                      ? 'border-amber-400 bg-amber-500 text-slate-950'
+                      : 'border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
-                  title="Open Teramee Platform Admin Dashboard"
+                  aria-label="Admin"
+                  title="Admin"
                 >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline">Admin</span>
+                  <KeyRound className="h-3.5 w-3.5" />
+                  <span className="hidden xl:inline">Admin</span>
                 </Link>
               )}
 
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/60 hover:bg-red-950/60 border border-slate-700/80 hover:border-red-800/60 text-xs font-semibold text-slate-300 hover:text-red-300 transition-colors cursor-pointer"
-                title="Log out of your Teramee account"
+                className="hidden h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-800 hover:text-white lg:inline-flex"
+                aria-label="Log out"
+                title="Log out"
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Log Out</span>
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden xl:inline">Log out</span>
               </button>
-            </div>
+            </>
           ) : (
-            <div className="flex items-center gap-2">
+            <>
               <button
                 type="button"
                 onClick={() => setShowLoginModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 hover:border-slate-600 transition-all cursor-pointer"
+                aria-label="Log in"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700 hover:text-white"
               >
-                <LogIn className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Log In</span>
+                <LogIn className="h-3.5 w-3.5 text-indigo-400" />
+                <span className="hidden sm:inline">Log in</span>
               </button>
-
               <Link
                 href="/signup"
-                className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-pink-500 to-indigo-500 hover:from-pink-400 hover:to-indigo-400 text-white shadow-sm shadow-pink-500/20 transition-all hover:scale-105"
+                className="inline-flex h-9 items-center whitespace-nowrap rounded-lg bg-gradient-to-r from-pink-500 to-indigo-500 px-3 text-xs font-bold text-white"
               >
-                Claim Handle
+                <span className="sm:hidden">Join</span>
+                <span className="hidden sm:inline">Claim handle</span>
               </Link>
-            </div>
+            </>
           )}
 
-          <Link
-            href={`/user/${currentUsername}`}
-            target="_blank"
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-            title="Open Public Profile in New Tab"
+          <button
+            type="button"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-slate-800 hover:text-white lg:hidden"
+            aria-expanded={mobileOpen}
+            aria-controls="platform-nav-menu"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setMenuPath(mobileOpen ? null : pathname)}
           >
-            <ExternalLink className="w-4 h-4" />
-          </Link>
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
       </div>
+
+      {mobileOpen && (
+        <div id="platform-nav-menu" className="w-full border-t border-slate-800 bg-slate-950 lg:hidden">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-1 px-3 py-3 sm:px-6">
+            {currentUser && (
+              <p className="px-3 pb-1 text-xs text-slate-400">
+                Signed in as{' '}
+                <span className="text-slate-200">
+                  {currentDisplayName || currentUser}{' '}
+                  <span className="font-mono">@{currentUser}</span>
+                </span>
+              </p>
+            )}
+            <Link
+              href={currentUser ? `/editor?user=${currentUser}` : '/editor?user=glitterqueen99'}
+              onClick={closeMenu}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              <Palette className="h-4 w-4" />
+              Theme Studio
+            </Link>
+            <Link
+              href={`/user/${currentUsername}`}
+              onClick={closeMenu}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              <User className="h-4 w-4" />
+              Member Profiles
+            </Link>
+            {isAdmin && (
+              <Link
+                href="/technology"
+                onClick={closeMenu}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Tech & Security
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={closeMenu}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+              >
+                <KeyRound className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
+            {currentUser && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800"
+              >
+                <LogOut className="h-4 w-4" />
+                Log out
+              </button>
+            )}
+            {onSelectUser && (
+              <label className="mt-2 block px-3">
+                <span className="text-xs text-slate-400">Preview profile</span>
+                <select
+                  value={currentUsername}
+                  onChange={(e) => onSelectUser(e.target.value)}
+                  aria-label="Switch User Profile"
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                >
+                  {PREVIEW_PROFILES.map((profile) => (
+                    <option key={profile.value} value={profile.value}>
+                      {profile.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Direct Messages Inbox Modal */}
       <InboxModal
