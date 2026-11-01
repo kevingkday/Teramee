@@ -168,6 +168,52 @@ export interface UserProfile {
   updatedAt: string;
 }
 
+export type SongProvider = 'spotify' | 'youtube' | 'apple';
+
+export interface SongSearchHit {
+  id: string;
+  provider: SongProvider;
+  title: string;
+  artist: string;
+  album?: string;
+  artworkUrl?: string;
+  durationLabel?: string;
+  sourceLabel: string;
+  canonical: boolean;
+  isrc?: string;
+  spotifyId?: string;
+  videoId?: string;
+  itunesId?: string;
+  mediaUrl?: string;
+  previewUrl?: string;
+}
+
+export interface SongSearchResponse {
+  provider: SongProvider;
+  query: string;
+  sourceLabel: string;
+  note: string;
+  results: SongSearchHit[];
+  error?: string;
+}
+
+export interface SelectedSong {
+  ok: true;
+  provider: SongProvider;
+  title: string;
+  artist: string;
+  album?: string;
+  artworkUrl?: string;
+  mediaUrl: string;
+  previewUrl: string;
+  sourceLabel: string;
+}
+
+export interface SongSelectFailure {
+  ok: false;
+  error: string;
+}
+
 export interface SanitizationViolation {
   type: 'blocked_at_rule' | 'scoped_selector' | 'neutralized_property' | 'blocked_uri' | 'syntax_error';
   severity: 'warning' | 'info' | 'critical';
