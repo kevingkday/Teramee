@@ -29,6 +29,7 @@ import {
 import { sanitizeAndScopeCss } from '../src/lib/sanitize-css';
 import { UserProfile, LayoutBlock } from '../src/lib/types';
 import { handleWeatherMcpRequest } from './mcp/weather';
+import { handleMusicMcpRequest } from './mcp/music';
 import {
   runStudioAssistantWithMcp,
   CloudflareAIBinding
@@ -738,6 +739,10 @@ export default {
 
     if (pathname === '/api/mcp/weather') {
       return handleWeatherMcpRequest(request);
+    }
+
+    if (pathname === '/api/mcp/music') {
+      return handleMusicMcpRequest(request);
     }
 
     if (pathname === '/api/studio/assistant' && request.method === 'POST') {

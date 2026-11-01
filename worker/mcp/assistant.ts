@@ -71,6 +71,37 @@ export const MCP_SERVER_CATALOG: McpServerCatalogEntry[] = [
     ]
   },
   {
+    id: 'profile-soundtrack',
+    name: 'Profile Soundtrack Search MCP',
+    provider: 'Spotify Web API / YouTube / Apple Music',
+    status: 'active',
+    transport: 'Streamable HTTP (JSON-RPC 2.0)',
+    endpoint: '/api/mcp/music',
+    description:
+      'Search Spotify, YouTube, or Apple Music and save the chosen song on a profile. Title and artist come from the selected app, matching the search-then-select flow used by open-source Spotify MCP servers.',
+    widgetType: 'soundtrack',
+    toolName: 'search_songs',
+    parameters: [
+      {
+        name: 'query',
+        type: 'string',
+        required: true,
+        description: 'Song title, artist, or both'
+      },
+      {
+        name: 'provider',
+        type: 'enum',
+        required: true,
+        description: 'Which player catalog to search',
+        options: ['spotify', 'youtube', 'apple']
+      }
+    ],
+    examples: [
+      'Search Spotify for Seven Nation Army',
+      'Save a YouTube video as my profile song'
+    ]
+  },
+  {
     id: 'lastfm-now-playing',
     name: 'Last.fm / Scrobbler Now Playing MCP',
     provider: 'Last.fm Audio Scrobbler',
@@ -383,7 +414,8 @@ Rules:
 - If the user asks to change/switch/replace their existing weather widget or already has a widget and just names a new city, set "mode": "update". Otherwise set "mode": "add".
 - If the user asks for a weather widget WITHOUT naming any city (e.g., "add a weather widget"), set "intent": "NEED_CITY" and "city": "".
 - If the user asks what you can do, what MCP servers exist, or asks for help, set "intent": "DISCOVER_MCP".
-- If the user asks for a non-weather widget (e.g. Spotify, music, GitHub, crypto), set "intent": "UNSUPPORTED_MCP".`;
+- If the user asks for a non-weather widget (e.g. a Spotify widget, GitHub, crypto), set "intent": "UNSUPPORTED_MCP".
+- Profile song search is not a layout widget. If they only want to pick a profile song, set "intent": "UNSUPPORTED_MCP" and say they can search Spotify, YouTube, or Apple Music in Profile Soundtrack.`;
 
   const modelsToTry = [
     '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
@@ -515,6 +547,7 @@ export async function runStudioAssistantWithMcp(
       reply:
         `Here is what you can add right now via Teramee's MCP Servers:\n\n` +
         `• Open-Meteo Weather & Radar MCP (LIVE): Adds a 90s CRT/LED live weather widget for ANY city worldwide in °C or °F. Try typing: "Add Vancouver weather in Celsius" or "Add Tokyo in Fahrenheit".\n` +
+        `• Profile Soundtrack Search MCP (LIVE): In the profile editor, search Spotify, YouTube, or Apple Music and save a real track. The song title comes from that app.\n` +
         `• Coming Soon: Last.fm Now Playing Scrobbler MCP & GitHub Commit Matrix MCP.`
     };
   }
@@ -527,7 +560,7 @@ export async function runStudioAssistantWithMcp(
       availableMcpServers: MCP_SERVER_CATALOG,
       reply:
         analysis.replyOverride ||
-        `That widget type isn't connected to an active MCP server yet! Right now, the Open-Meteo Weather & Radar MCP is live (Last.fm Music & GitHub Activity MCPs are coming soon). Try asking: "Add Vancouver weather in Celsius" or pick a city above!`
+        `That layout widget isn't connected yet. You can already search and save a real song in Profile Soundtrack (Spotify, YouTube, or Apple Music) — the title comes from the app you pick. For a profile widget, the Open-Meteo Weather MCP is live. Try: "Add Vancouver weather in Celsius".`
     };
   }
 

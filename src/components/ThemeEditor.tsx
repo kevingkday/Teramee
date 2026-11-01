@@ -12,7 +12,7 @@ import {
 } from '@/lib/types';
 import { THEME_PRESETS } from '@/lib/presets';
 import { sanitizeAndScopeCss } from '@/lib/sanitize-css';
-import { parseYouTubeUrl, parseSpotifyUrl, POPULAR_RETRO_SOUNDTRACKS } from '@/lib/media-utils';
+import { SongSearchPicker } from './SongSearchPicker';
 import { SandboxedFrame } from './SandboxedFrame';
 import { ShadowDomSandbox } from './ShadowDomSandbox';
 import { StudioAIAssistant } from './StudioAIAssistant';
@@ -1321,122 +1321,31 @@ export function ThemeEditor({ initialProfile, isClaimingNew }: ThemeEditorProps)
                     </div>
                   </div>
 
-                  {/* Song Title & Artist (always editable for Cassette & Activity Feed) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-300">Song Title</label>
-                      <input
-                        type="text"
-                        value={profile.songTitle}
-                        onChange={(e) => setProfile(prev => ({ ...prev, songTitle: e.target.value }))}
-                        placeholder="e.g. Seven Nation Army"
-                        className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-300">Song Artist</label>
-                      <input
-                        type="text"
-                        value={profile.songArtist}
-                        onChange={(e) => setProfile(prev => ({ ...prev, songArtist: e.target.value }))}
-                        placeholder="e.g. The White Stripes"
-                        className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Conditional Embed / Audio URL Input */}
-                  {profile.mediaType === 'spotify' && (
-                    <div className="space-y-1.5 pt-1">
-                      <label className="text-xs font-semibold text-emerald-300">
-                        Spotify Track, Album, or Playlist URL
-                      </label>
-                      <input
-                        type="text"
-                        value={profile.mediaUrl || ''}
-                        onChange={(e) =>
-                          setProfile((prev) => ({ ...prev, mediaUrl: e.target.value }))
-                        }
-                        placeholder="https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT"
-                        className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-emerald-500"
-                      />
-                      {profile.mediaUrl && !parseSpotifyUrl(profile.mediaUrl).isValid && (
-                        <p className="text-[11px] text-amber-400">
-                          Paste a valid Spotify link (e.g. <code className="font-mono">https://open.spotify.com/track/...</code>)
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {profile.mediaType === 'youtube' && (
-                    <div className="space-y-1.5 pt-1">
-                      <label className="text-xs font-semibold text-rose-300">
-                        YouTube Video or Song URL
-                      </label>
-                      <input
-                        type="text"
-                        value={profile.mediaUrl || ''}
-                        onChange={(e) =>
-                          setProfile((prev) => ({ ...prev, mediaUrl: e.target.value }))
-                        }
-                        placeholder="https://www.youtube.com/watch?v=0wrsZog8qXg"
-                        className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-rose-500"
-                      />
-                      {profile.mediaUrl && !parseYouTubeUrl(profile.mediaUrl).isValid && (
-                        <p className="text-[11px] text-amber-400">
-                          Paste a valid YouTube link (e.g. <code className="font-mono">https://www.youtube.com/watch?v=...</code>)
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {(!profile.mediaType || profile.mediaType === 'retro-cassette') && (
-                    <div className="space-y-1.5 pt-1">
-                      <label className="text-xs font-semibold text-slate-300">
-                        Direct MP3 / Audio Stream URL <span className="text-slate-500 font-normal">(Optional)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={profile.songAudioUrl || ''}
-                        onChange={(e) =>
-                          setProfile((prev) => ({ ...prev, songAudioUrl: e.target.value }))
-                        }
-                        placeholder="https://.../track.mp3 (or leave blank for built-in retro synth)"
-                        className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-cyan-500"
-                      />
-                    </div>
-                  )}
-
-                  {/* Quick-Fill 2006 Anthem Presets */}
-                  <div className="pt-2 border-t border-slate-700/70 space-y-1.5">
-                    <span className="text-[10px] font-semibold text-slate-400">
-                      Quick-Fill 2006 MySpace Anthems:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {POPULAR_RETRO_SOUNDTRACKS.map((track, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() =>
-                            setProfile((prev) => ({
-                              ...prev,
-                              songTitle: track.name,
-                              songArtist: track.artist,
-                              mediaUrl:
-                                prev.mediaType === 'youtube'
-                                  ? track.youtubeUrl
-                                  : prev.mediaType === 'spotify'
-                                  ? track.spotifyUrl
-                                  : prev.mediaUrl
-                            }))
-                          }
-                          className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-700 text-[11px] text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
-                        >
-                          ♫ {track.name} — {track.artist}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <SongSearchPicker
+                    mediaType={profile.mediaType}
+                    songTitle={profile.songTitle}
+                    songArtist={profile.songArtist}
+                    mediaUrl={profile.mediaUrl}
+                    songAudioUrl={profile.songAudioUrl}
+                    onSelect={(song) =>
+                      setProfile((prev) => ({
+                        ...prev,
+                        songTitle: song.title,
+                        songArtist: song.artist,
+                        mediaUrl: song.mediaUrl,
+                        songAudioUrl: song.previewUrl
+                      }))
+                    }
+                    onClear={() =>
+                      setProfile((prev) => ({
+                        ...prev,
+                        songTitle: '',
+                        songArtist: '',
+                        mediaUrl: '',
+                        songAudioUrl: ''
+                      }))
+                    }
+                  />
                 </div>
 
                 {/* Profile Security & Password */}
