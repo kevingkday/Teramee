@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PlatformNavbar } from '@/components/PlatformNavbar';
 import { ActivityFeed } from '@/components/ActivityFeed';
+import { RecentVisitors } from '@/components/RecentVisitors';
 import {
   Sparkles,
   Music,
@@ -23,10 +24,9 @@ import {
   Volume2,
   CheckCircle2,
   Sliders,
-  Code2,
-  ChevronRight,
   LogIn,
-  LogOut
+  LogOut,
+  User
 } from 'lucide-react';
 
 interface PreviewTheme {
@@ -153,6 +153,37 @@ const PREVIEW_THEMES: PreviewTheme[] = [
   }
 ];
 
+const COMMUNITY_MEMBERS = [
+  {
+    username: 'kevin',
+    displayName: 'Kevin',
+    badge: 'Classic 2006 Blue',
+    avatarUrl: 'https://github.com/kevingkday.png',
+    tagline: 'Building the friendly web since 2003. Everyone’s first friend!'
+  },
+  {
+    username: 'glitterqueen99',
+    displayName: 'xX_Glitter_Star_Xx',
+    badge: 'Scene Queen 2007',
+    avatarUrl: '/avatars/glitterqueen.jpg',
+    tagline: 'Rawr means I love you in dinosaur!! xD'
+  },
+  {
+    username: 'sarah',
+    displayName: 'Sarah Jenkins',
+    badge: 'Indie Acoustic',
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    tagline: 'Coffee shops, acoustic guitars & Polaroid cameras.'
+  },
+  {
+    username: 'alex',
+    displayName: 'Alex River',
+    badge: 'Garage Rock',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    tagline: 'Bassist in an indie rock garage band. Tube amps forever.'
+  }
+];
+
 export default function HomePage() {
   const router = useRouter();
   const [activeThemeIndex, setActiveThemeIndex] = useState(0);
@@ -239,98 +270,195 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-pink-500 selection:text-white">
-      <PlatformNavbar currentUsername="kevin" />
+      <PlatformNavbar currentUsername={currentUser || 'kevin'} />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-20 border-b border-slate-800">
-        {/* Ambient Glow & Starry Backing */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 -z-10" />
-        <div
-          className="absolute inset-0 opacity-20 pointer-events-none -z-10"
-          style={{
-            backgroundImage: `radial-gradient(2px 2px at 30px 40px, #fff, transparent), radial-gradient(1.5px 1.5px at 120px 80px, #ff007f, transparent), radial-gradient(2px 2px at 200px 180px, #00f0ff, transparent)`,
-            backgroundSize: '250px 250px'
-          }}
-        />
+      {currentUser ? (
+        /* LOGGED-IN MEMBER DASHBOARD: Focused directly on the Live Update Feed */
+        <main className="flex-1 py-8 sm:py-10">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            {/* Compact Member Header Bar */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-950/80 via-slate-900 to-purple-950/80 border border-indigo-500/30 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <Link href={`/user/${currentUser}`} className="relative shrink-0 group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={
+                      currentAvatarUrl ||
+                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
+                    }
+                    alt={currentDisplayName || currentUser}
+                    className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-400 shadow-md bg-slate-900 group-hover:scale-105 transition-transform"
+                  />
+                  <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-slate-900" />
+                </Link>
+                <div>
+                  <div className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-bold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Member Feed &amp; Activity Pulse</span>
+                  </div>
+                  <h1 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                    <span>Welcome back, {currentDisplayName || currentUser}</span>
+                    <span className="text-xs font-mono text-indigo-300 font-normal">
+                      (@{currentUser})
+                    </span>
+                  </h1>
+                </div>
+              </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          {/* Main Hook & Pitch */}
-          <div className="text-center space-y-5 max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-pink-500/10 border border-pink-500/30 text-pink-400 text-xs font-semibold shadow-sm shadow-pink-500/10 animate-fade-in">
-              <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" />
-              <span className="tracking-wide uppercase font-mono text-[11px]">
-                ★ The Expressive Web is Back ★
-              </span>
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                <Link
+                  href={`/user/${currentUser}`}
+                  className="px-3.5 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>My Profile</span>
+                </Link>
+                <Link
+                  href={`/editor?user=${currentUser}`}
+                  className="px-3.5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <Palette className="w-3.5 h-3.5" />
+                  <span>Customize Space</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="px-3 py-2 text-xs font-semibold rounded-xl bg-slate-800/80 hover:bg-red-950/60 text-slate-300 hover:text-red-300 border border-slate-700 hover:border-red-800/60 transition-colors cursor-pointer flex items-center gap-1"
+                  title="Log Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Log Out</span>
+                </button>
+              </div>
             </div>
 
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-none">
-              Your Space. Your Sound. <br />
-              <span className="bg-gradient-to-r from-cyan-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
-                Your Rules.
-              </span>
-            </h1>
+            {/* Main Dashboard Grid: Activity Feed (Left/Main) + Visitors & Community (Right Sidebar) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Primary Update Feed */}
+              <div className="lg:col-span-8">
+                <ActivityFeed limit={20} />
+              </div>
 
-            <p className="text-slate-300 text-base sm:text-xl max-w-2xl mx-auto leading-relaxed">
-              Remember when your online profile actually felt like <i>your room</i>?
-              Pick your wallpaper, choose the track that greets visitors, rank your real Top 8,
-              and write custom CSS without corporate algorithms crushing your vibe.
-            </p>
+              {/* Right Sidebar: Who Viewed My Profile & Quick Community Directory */}
+              <div className="lg:col-span-4 space-y-6">
+                {/* Recent Visitors to My Profile */}
+                <div
+                  className="p-5 rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-md shadow-xl"
+                  style={
+                    {
+                      '--border-color': '#334155',
+                      '--header-color': '#ffffff',
+                      '--accent-color': '#38bdf8',
+                      '--border-radius': '8px'
+                    } as React.CSSProperties
+                  }
+                >
+                  <RecentVisitors
+                    username={currentUser}
+                    title="Who Viewed My Profile"
+                  />
+                </div>
 
-            {/* Auth-Aware Hero CTA: Logged In Card OR Claim Handle & Login Link */}
-            <div className="pt-4 max-w-xl mx-auto">
-              {currentUser ? (
-                /* Authenticated User Hero Banner */
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900/60 via-purple-900/50 to-pink-900/60 border border-indigo-500/40 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md">
-                  <div className="flex items-center gap-3.5 w-full sm:w-auto">
-                    <div className="relative flex-shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={currentAvatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'}
-                        alt={currentDisplayName || currentUser}
-                        className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-400 shadow-md bg-slate-900"
-                      />
-                      <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-slate-900" />
+                {/* Active Community Spaces */}
+                <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-md shadow-xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-pink-400" />
+                      <h2 className="text-sm font-bold text-white">
+                        Community Spaces
+                      </h2>
                     </div>
-                    <div className="text-left">
-                      <div className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-bold flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        Logged in as
-                      </div>
-                      <div className="text-base font-bold text-white flex items-center gap-1.5">
-                        <span>{currentDisplayName || currentUser}</span>
-                        <span className="text-xs font-mono text-indigo-300 font-normal">(@{currentUser})</span>
-                      </div>
-                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      Visit &amp; Sign Wall
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <Link
-                      href={`/user/${currentUser}`}
-                      className="px-3.5 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md active:scale-95 whitespace-nowrap"
-                    >
-                      My Profile
-                    </Link>
-                    <Link
-                      href={`/editor?user=${currentUser}`}
-                      className="px-3.5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white transition-all shadow-md active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-                    >
-                      <Palette className="w-3.5 h-3.5" />
-                      <span>Customize</span>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="px-3 py-2 text-xs font-semibold rounded-xl bg-slate-800/80 hover:bg-red-950/60 text-slate-300 hover:text-red-300 border border-slate-700 hover:border-red-800/60 transition-colors cursor-pointer flex items-center gap-1"
-                      title="Log Out"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Log Out</span>
-                    </button>
+                  <div className="space-y-3">
+                    {COMMUNITY_MEMBERS.map((member) => (
+                      <div
+                        key={member.username}
+                        className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/90 hover:border-indigo-500/40 transition-colors flex items-center justify-between gap-3"
+                      >
+                        <Link
+                          href={`/user/${member.username}`}
+                          className="flex items-center gap-3 min-w-0 flex-1 group"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={member.avatarUrl}
+                            alt={member.displayName}
+                            className="w-10 h-10 rounded-xl object-cover border border-slate-700 group-hover:border-pink-500 transition-colors shrink-0"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-white group-hover:text-pink-400 transition-colors truncate">
+                                {member.displayName}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-500">
+                                @{member.username}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 truncate">
+                              {member.tagline}
+                            </p>
+                          </div>
+                        </Link>
+
+                        <Link
+                          href={`/user/${member.username}`}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white text-[11px] font-bold transition-colors shrink-0 flex items-center gap-1"
+                        >
+                          <span>Visit</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ) : (
-                /* Unauthenticated Reservation Bar & Quick Login Link */
-                <div className="space-y-3">
+              </div>
+            </div>
+          </div>
+        </main>
+      ) : (
+        /* LOGGED-OUT VISITOR LANDING PAGE */
+        <>
+          {/* Hero Section */}
+          <section className="relative overflow-hidden pt-12 pb-20 border-b border-slate-800">
+            {/* Ambient Glow & Starry Backing */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 -z-10" />
+            <div
+              className="absolute inset-0 opacity-20 pointer-events-none -z-10"
+              style={{
+                backgroundImage: `radial-gradient(2px 2px at 30px 40px, #fff, transparent), radial-gradient(1.5px 1.5px at 120px 80px, #ff007f, transparent), radial-gradient(2px 2px at 200px 180px, #00f0ff, transparent)`,
+                backgroundSize: '250px 250px'
+              }}
+            />
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+              {/* Main Hook & Pitch */}
+              <div className="text-center space-y-5 max-w-4xl mx-auto">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-pink-500/10 border border-pink-500/30 text-pink-400 text-xs font-semibold shadow-sm shadow-pink-500/10 animate-fade-in">
+                  <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" />
+                  <span className="tracking-wide uppercase font-mono text-[11px]">
+                    ★ The Expressive Web is Back ★
+                  </span>
+                </div>
+
+                <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-none">
+                  Your Space. Your Sound. <br />
+                  <span className="bg-gradient-to-r from-cyan-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
+                    Your Rules.
+                  </span>
+                </h1>
+
+                <p className="text-slate-300 text-base sm:text-xl max-w-2xl mx-auto leading-relaxed">
+                  Remember when your online profile actually felt like <i>your room</i>?
+                  Pick your wallpaper, choose the track that greets visitors, rank your real Top 8,
+                  and write custom CSS without corporate algorithms crushing your vibe.
+                </p>
+
+                {/* Unauthenticated Reservation Bar & Quick Login Link */}
+                <div className="pt-4 max-w-xl mx-auto space-y-3">
                   <form
                     onSubmit={handleClaimProfile}
                     className="p-1.5 rounded-2xl bg-slate-900/90 border border-slate-700/80 shadow-2xl shadow-indigo-500/10 flex flex-col sm:flex-row items-center gap-2 backdrop-blur-md"
@@ -380,595 +508,568 @@ export default function HomePage() {
                     <span className="text-slate-700">&bull;</span>
                     <span className="flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      Real Scoped CSS & Tokens
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Live Interactive Profile Studio Preview (Hero Centerpiece) */}
-          <div className="max-w-5xl mx-auto space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-                  Try a Theme Preset Live:
-                </span>
-              </div>
-
-              {/* Theme Switcher Pills */}
-              <div className="flex flex-wrap items-center gap-2">
-                {PREVIEW_THEMES.map((theme, idx) => (
-                  <button
-                    key={theme.id}
-                    onClick={() => setActiveThemeIndex(idx)}
-                    type="button"
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      activeThemeIndex === idx
-                        ? 'bg-gradient-to-r from-pink-500 to-indigo-500 text-white shadow-md shadow-pink-500/20 scale-105'
-                        : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
-                    }`}
-                  >
-                    {theme.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* The Morphing Profile Card Frame */}
-            <div
-              className="rounded-2xl border border-slate-700/60 p-4 sm:p-6 shadow-2xl transition-all duration-500 relative overflow-hidden"
-              style={{
-                backgroundColor: currentTheme.bgColor,
-                color: currentTheme.accentColor,
-                fontFamily: currentTheme.fontFamily,
-                ...getPatternStyle(currentTheme.pattern)
-              }}
-            >
-              {/* Profile Card Header Banner */}
-              <div className="relative rounded-xl overflow-hidden mb-6 h-36 sm:h-44 border border-black/20 shadow-md">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={currentTheme.bannerUrl}
-                  alt="Banner"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end p-4">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-1 rounded text-xs font-mono font-bold bg-black/60 text-white backdrop-blur-sm border border-white/20">
-                        {currentTheme.name}
-                      </span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500 text-slate-950 uppercase">
-                      ● Online Now
+                      Real Scoped CSS &amp; Tokens
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Profile Grid: Left Info & Right Content */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                {/* Left Column: Avatar, Mood, Bio Blurb */}
+              {/* Live Interactive Profile Studio Preview (Hero Centerpiece) */}
+              <div className="max-w-5xl mx-auto space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 px-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                      Try a Theme Preset Live:
+                    </span>
+                  </div>
+
+                  {/* Theme Switcher Pills */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {PREVIEW_THEMES.map((theme, idx) => (
+                      <button
+                        key={theme.id}
+                        onClick={() => setActiveThemeIndex(idx)}
+                        type="button"
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          activeThemeIndex === idx
+                            ? 'bg-gradient-to-r from-pink-500 to-indigo-500 text-white shadow-md shadow-pink-500/20 scale-105'
+                            : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                        }`}
+                      >
+                        {theme.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* The Morphing Profile Card Frame */}
                 <div
-                  className="md:col-span-5 rounded-xl p-4 transition-all"
+                  className="rounded-2xl border border-slate-700/60 p-4 sm:p-6 shadow-2xl transition-all duration-500 relative overflow-hidden"
                   style={{
-                    backgroundColor: currentTheme.cardBg,
-                    borderColor: currentTheme.borderColor,
-                    borderStyle: currentTheme.borderStyle,
-                    borderWidth: '2px'
+                    backgroundColor: currentTheme.bgColor,
+                    color: currentTheme.accentColor,
+                    fontFamily: currentTheme.fontFamily,
+                    ...getPatternStyle(currentTheme.pattern)
                   }}
                 >
-                  <div className="flex items-start gap-4">
+                  {/* Profile Card Header Banner */}
+                  <div className="relative rounded-xl overflow-hidden mb-6 h-36 sm:h-44 border border-black/20 shadow-md">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={currentTheme.avatarUrl}
-                      alt="Avatar"
-                      className="w-20 h-20 rounded-lg object-cover border-2 shadow-md transition-transform hover:scale-105"
-                      style={{ borderColor: currentTheme.accentColor }}
+                      src={currentTheme.bannerUrl}
+                      alt="Banner"
+                      className="w-full h-full object-cover"
                     />
-                    <div className="flex-1 min-w-0">
-                      <h3
-                        className="text-lg font-black truncate"
-                        style={{ color: currentTheme.headerColor }}
-                      >
-                        {currentTheme.name}
-                      </h3>
-                      <p className="text-xs opacity-75 font-mono">@teramee_member</p>
-                      <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-black/10 border border-black/10">
-                        <Flame className="w-3 h-3 text-orange-500" />
-                        <span>Mood: {currentTheme.mood}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-black/10 text-xs leading-relaxed opacity-90 space-y-2">
-                    <p className="font-semibold italic">&ldquo;{currentTheme.quote}&rdquo;</p>
-                    <p className="text-[11px] opacity-75">
-                      <b>Interests:</b> Custom CSS, digital nostalgia, mixtapes, retro gaming.
-                    </p>
-                  </div>
-
-                  <div className="mt-4 flex gap-2">
-                    <Link
-                      href={`/editor?user=glitterqueen99&theme=${currentTheme.id}`}
-                      className="flex-1 py-2 px-3 rounded-lg text-xs font-bold text-center text-white shadow-sm flex items-center justify-center gap-1 transition-transform hover:scale-105"
-                      style={{ backgroundColor: currentTheme.headerColor }}
-                    >
-                      <Palette className="w-3.5 h-3.5" />
-                      Remix in Studio
-                    </Link>
-                    <Link
-                      href="/user/kevin"
-                      className="py-2 px-3 rounded-lg text-xs font-bold text-center border transition-opacity hover:opacity-80"
-                      style={{ borderColor: currentTheme.borderColor }}
-                    >
-                      View Live
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Right Column: Audio Cassette + Top Friends */}
-                <div className="md:col-span-7 space-y-4">
-                  {/* Cassette Music Player Component */}
-                  <div
-                    className="rounded-xl p-4 border transition-all"
-                    style={{
-                      backgroundColor: currentTheme.cardBg,
-                      borderColor: currentTheme.borderColor,
-                      borderStyle: currentTheme.borderStyle,
-                      borderWidth: '2px'
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Disc
-                          className={`w-5 h-5 ${isPlayingAudio ? 'animate-spin' : ''}`}
-                          style={{ color: currentTheme.headerColor }}
-                        />
-                        <span className="text-xs font-mono font-bold uppercase tracking-wider opacity-75">
-                          ♫ Profile Soundtrack
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end p-4">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 rounded text-xs font-mono font-bold bg-black/60 text-white backdrop-blur-sm border border-white/20">
+                            {currentTheme.name}
+                          </span>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500 text-slate-950 uppercase">
+                          ● Online Now
                         </span>
                       </div>
-                      <span
-                        className="px-2 py-0.5 text-[10px] rounded font-mono font-bold"
-                        style={{
-                          backgroundColor: `${currentTheme.accentColor}25`,
-                          color: currentTheme.accentColor
-                        }}
-                      >
-                        {isPlayingAudio ? 'PLAYING' : 'PAUSED'}
-                      </span>
+                    </div>
+                  </div>
+
+                  {/* Profile Grid: Left Info & Right Content */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    {/* Left Column: Avatar, Mood, Bio Blurb */}
+                    <div
+                      className="md:col-span-5 rounded-xl p-4 transition-all"
+                      style={{
+                        backgroundColor: currentTheme.cardBg,
+                        borderColor: currentTheme.borderColor,
+                        borderStyle: currentTheme.borderStyle,
+                        borderWidth: '2px'
+                      }}
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={currentTheme.avatarUrl}
+                          alt="Avatar"
+                          className="w-20 h-20 rounded-lg object-cover border-2 shadow-md transition-transform hover:scale-105"
+                          style={{ borderColor: currentTheme.accentColor }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3
+                            className="text-lg font-black truncate"
+                            style={{ color: currentTheme.headerColor }}
+                          >
+                            {currentTheme.name}
+                          </h3>
+                          <p className="text-xs opacity-75 font-mono">@teramee_member</p>
+                          <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-black/10 border border-black/10">
+                            <Flame className="w-3 h-3 text-orange-500" />
+                            <span>Mood: {currentTheme.mood}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-black/10 text-xs leading-relaxed opacity-90 space-y-2">
+                        <p className="font-semibold italic">&ldquo;{currentTheme.quote}&rdquo;</p>
+                        <p className="text-[11px] opacity-75">
+                          <b>Interests:</b> Custom CSS, digital nostalgia, mixtapes, retro gaming.
+                        </p>
+                      </div>
+
+                      <div className="mt-4 flex gap-2">
+                        <Link
+                          href={`/editor?user=glitterqueen99&theme=${currentTheme.id}`}
+                          className="flex-1 py-2 px-3 rounded-lg text-xs font-bold text-center text-white shadow-sm flex items-center justify-center gap-1 transition-transform hover:scale-105"
+                          style={{ backgroundColor: currentTheme.headerColor }}
+                        >
+                          <Palette className="w-3.5 h-3.5" />
+                          Remix in Studio
+                        </Link>
+                        <Link
+                          href="/user/kevin"
+                          className="py-2 px-3 rounded-lg text-xs font-bold text-center border transition-opacity hover:opacity-80"
+                          style={{ borderColor: currentTheme.borderColor }}
+                        >
+                          View Live
+                        </Link>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setIsPlayingAudio(!isPlayingAudio)}
-                        aria-label={isPlayingAudio ? 'Pause profile music' : 'Play profile music'}
-                        className="w-11 h-11 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-110 active:scale-95 cursor-pointer flex-shrink-0"
-                        style={{ backgroundColor: currentTheme.headerColor }}
+                    {/* Right Column: Audio Cassette + Top Friends */}
+                    <div className="md:col-span-7 space-y-4">
+                      {/* Cassette Music Player Component */}
+                      <div
+                        className="rounded-xl p-4 border transition-all"
+                        style={{
+                          backgroundColor: currentTheme.cardBg,
+                          borderColor: currentTheme.borderColor,
+                          borderStyle: currentTheme.borderStyle,
+                          borderWidth: '2px'
+                        }}
                       >
-                        {isPlayingAudio ? (
-                          <Pause className="w-4 h-4 fill-current" />
-                        ) : (
-                          <Play className="w-4 h-4 fill-current ml-0.5" />
-                        )}
-                      </button>
-
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold truncate" style={{ color: currentTheme.headerColor }}>
-                          {currentTheme.songTitle}
-                        </p>
-                        <p className="text-xs opacity-75 truncate">
-                          {currentTheme.songArtist}
-                        </p>
-
-                        {/* Equalizer Waveform */}
-                        <div className="flex items-end gap-1 h-3 mt-2">
-                          {[30, 85, 45, 95, 20, 75, 90, 40, 100, 60, 50, 80, 65, 35].map((h, i) => (
-                            <div
-                              key={i}
-                              className="w-1 rounded-t transition-all duration-300"
-                              style={{
-                                height: isPlayingAudio ? `${h}%` : '20%',
-                                backgroundColor: currentTheme.accentColor
-                              }}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Disc
+                              className={`w-5 h-5 ${isPlayingAudio ? 'animate-spin' : ''}`}
+                              style={{ color: currentTheme.headerColor }}
                             />
+                            <span className="text-xs font-mono font-bold uppercase tracking-wider opacity-75">
+                              ♫ Profile Soundtrack
+                            </span>
+                          </div>
+                          <span
+                            className="px-2 py-0.5 text-[10px] rounded font-mono font-bold"
+                            style={{
+                              backgroundColor: `${currentTheme.accentColor}25`,
+                              color: currentTheme.accentColor
+                            }}
+                          >
+                            {isPlayingAudio ? 'PLAYING' : 'PAUSED'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setIsPlayingAudio(!isPlayingAudio)}
+                            aria-label={isPlayingAudio ? 'Pause profile music' : 'Play profile music'}
+                            className="w-11 h-11 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-110 active:scale-95 cursor-pointer flex-shrink-0"
+                            style={{ backgroundColor: currentTheme.headerColor }}
+                          >
+                            {isPlayingAudio ? (
+                              <Pause className="w-4 h-4 fill-current" />
+                            ) : (
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            )}
+                          </button>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold truncate" style={{ color: currentTheme.headerColor }}>
+                              {currentTheme.songTitle}
+                            </p>
+                            <p className="text-xs opacity-75 truncate">
+                              {currentTheme.songArtist}
+                            </p>
+
+                            {/* Equalizer Waveform */}
+                            <div className="flex items-end gap-1 h-3 mt-2">
+                              {[30, 85, 45, 95, 20, 75, 90, 40, 100, 60, 50, 80, 65, 35].map((h, i) => (
+                                <div
+                                  key={i}
+                                  className="w-1 rounded-t transition-all duration-300"
+                                  style={{
+                                    height: isPlayingAudio ? `${h}%` : '20%',
+                                    backgroundColor: currentTheme.accentColor
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="hidden sm:flex items-center gap-1.5 opacity-60">
+                            <Volume2 className="w-4 h-4" />
+                            <div className="w-10 h-1 rounded-full bg-black/20 overflow-hidden">
+                              <div
+                                className="w-3/4 h-full"
+                                style={{ backgroundColor: currentTheme.accentColor }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Top 4 Friends Strip */}
+                      <div
+                        className="rounded-xl p-4 border transition-all"
+                        style={{
+                          backgroundColor: currentTheme.cardBg,
+                          borderColor: currentTheme.borderColor,
+                          borderStyle: currentTheme.borderStyle,
+                          borderWidth: '2px'
+                        }}
+                      >
+                        <div className="flex items-center justify-between pb-2 mb-3 border-b border-black/10">
+                          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: currentTheme.headerColor }}>
+                            ★ Top Connections ★
+                          </span>
+                          <span className="text-[10px] font-mono opacity-70">
+                            [Handpicked Inner Circle]
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2">
+                          {currentTheme.topFriends.map((friend, idx) => (
+                            <div key={idx} className="flex flex-col items-center text-center group cursor-pointer">
+                              <div className="relative mb-1">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={friend.avatarUrl}
+                                  alt={friend.name}
+                                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover border transition-transform group-hover:scale-105 shadow-sm"
+                                  style={{ borderColor: currentTheme.accentColor }}
+                                />
+                                <span
+                                  className="absolute -top-1 -left-1 px-1 py-0.2 rounded text-[8px] font-bold text-white shadow"
+                                  style={{ backgroundColor: currentTheme.headerColor }}
+                                >
+                                  #{idx + 1}
+                                </span>
+                              </div>
+                              <span className="text-[11px] font-bold truncate max-w-full" style={{ color: currentTheme.headerColor }}>
+                                {friend.name}
+                              </span>
+                              <span className="text-[9px] opacity-70 truncate max-w-full">
+                                {friend.role}
+                              </span>
+                            </div>
                           ))}
                         </div>
                       </div>
-
-                      <div className="hidden sm:flex items-center gap-1.5 opacity-60">
-                        <Volume2 className="w-4 h-4" />
-                        <div className="w-10 h-1 rounded-full bg-black/20 overflow-hidden">
-                          <div
-                            className="w-3/4 h-full"
-                            style={{ backgroundColor: currentTheme.accentColor }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Top 4 Friends Strip */}
-                  <div
-                    className="rounded-xl p-4 border transition-all"
-                    style={{
-                      backgroundColor: currentTheme.cardBg,
-                      borderColor: currentTheme.borderColor,
-                      borderStyle: currentTheme.borderStyle,
-                      borderWidth: '2px'
-                    }}
-                  >
-                    <div className="flex items-center justify-between pb-2 mb-3 border-b border-black/10">
-                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: currentTheme.headerColor }}>
-                        ★ Top Connections ★
-                      </span>
-                      <span className="text-[10px] font-mono opacity-70">
-                        [Handpicked Inner Circle]
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-2">
-                      {currentTheme.topFriends.map((friend, idx) => (
-                        <div key={idx} className="flex flex-col items-center text-center group cursor-pointer">
-                          <div className="relative mb-1">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={friend.avatarUrl}
-                              alt={friend.name}
-                              className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover border transition-transform group-hover:scale-105 shadow-sm"
-                              style={{ borderColor: currentTheme.accentColor }}
-                            />
-                            <span
-                              className="absolute -top-1 -left-1 px-1 py-0.2 rounded text-[8px] font-bold text-white shadow"
-                              style={{ backgroundColor: currentTheme.headerColor }}
-                            >
-                              #{idx + 1}
-                            </span>
-                          </div>
-                          <span className="text-[11px] font-bold truncate max-w-full" style={{ color: currentTheme.headerColor }}>
-                            {friend.name}
-                          </span>
-                          <span className="text-[9px] opacity-70 truncate max-w-full">
-                            {friend.role}
-                          </span>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* The Modern Problem vs. Teramee (Why We Exist) */}
-      <section className="py-20 border-b border-slate-800 bg-slate-950/60">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <h2 className="text-2xl sm:text-4xl font-black text-white">
-              Why Corporate Social Media Sucks
-            </h2>
-            <p className="text-slate-400 text-sm sm:text-base">
-              Every modern platform turned the internet into a sterile office park. Teramee is your neon living room.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* The Sterile Web */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-slate-900/50 border border-slate-800/80 space-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 font-bold text-lg">
-                  ✕
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">The Corporate Feed</h3>
-                  <p className="text-xs text-slate-400">Standardized, sterile, engagement-trapped</p>
-                </div>
+          {/* The Modern Problem vs. Teramee (Why We Exist) */}
+          <section className="py-20 border-b border-slate-800 bg-slate-950/60">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+              <div className="text-center space-y-3 max-w-2xl mx-auto">
+                <h2 className="text-2xl sm:text-4xl font-black text-white">
+                  Why Corporate Social Media Sucks
+                </h2>
+                <p className="text-slate-400 text-sm sm:text-base">
+                  Every modern platform turned the internet into a sterile office park. Teramee is your neon living room.
+                </p>
               </div>
 
-              <ul className="space-y-3.5 text-xs sm:text-sm text-slate-400">
-                <li className="flex items-start gap-2.5">
-                  <span className="text-rose-400 font-bold">✕</span>
-                  <span><b>Zero Customization:</b> Everyone has the exact same boring white or grey rectangle layout.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="text-rose-400 font-bold">✕</span>
-                  <span><b>Algorithmic Rage Bait:</b> Black-box algorithms choose what you see based on what makes you angry.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="text-rose-400 font-bold">✕</span>
-                  <span><b>No Music, No Soul:</b> Your musical taste and personality are squashed into a 150-character bio.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="text-rose-400 font-bold">✕</span>
-                  <span><b>Disposable Content:</b> Stories disappear in 24 hours to fuel constant compulsive checking.</span>
-                </li>
-              </ul>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* The Sterile Web */}
+                <div className="p-6 sm:p-8 rounded-2xl bg-slate-900/50 border border-slate-800/80 space-y-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 font-bold text-lg">
+                      ✕
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">The Corporate Feed</h3>
+                      <p className="text-xs text-slate-400">Standardized, sterile, engagement-trapped</p>
+                    </div>
+                  </div>
 
-            {/* The Teramee Vision */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-b from-indigo-950/40 to-slate-900 border border-indigo-500/30 space-y-5 shadow-xl shadow-indigo-500/5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 font-bold text-lg">
-                  ★
+                  <ul className="space-y-3.5 text-xs sm:text-sm text-slate-400">
+                    <li className="flex items-start gap-2.5">
+                      <span className="text-rose-400 font-bold">✕</span>
+                      <span><b>Zero Customization:</b> Everyone has the exact same boring white or grey rectangle layout.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <span className="text-rose-400 font-bold">✕</span>
+                      <span><b>Algorithmic Rage Bait:</b> Black-box algorithms choose what you see based on what makes you angry.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <span className="text-rose-400 font-bold">✕</span>
+                      <span><b>No Music, No Soul:</b> Your musical taste and personality are squashed into a 150-character bio.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <span className="text-rose-400 font-bold">✕</span>
+                      <span><b>Disposable Content:</b> Stories disappear in 24 hours to fuel constant compulsive checking.</span>
+                    </li>
+                  </ul>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    The Teramee Web
-                    <span className="px-2 py-0.5 rounded text-[10px] bg-pink-500/20 text-pink-300 font-mono">
-                      FREEDOM
-                    </span>
+
+                {/* The Teramee Vision */}
+                <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-b from-indigo-950/40 to-slate-900 border border-indigo-500/30 space-y-5 shadow-xl shadow-indigo-500/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 font-bold text-lg">
+                      ★
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        The Teramee Web
+                        <span className="px-2 py-0.5 rounded text-[10px] bg-pink-500/20 text-pink-300 font-mono">
+                          FREEDOM
+                        </span>
+                      </h3>
+                      <p className="text-xs text-indigo-300">Hyper-expressive, music-driven, genuinely social</p>
+                    </div>
+                  </div>
+
+                  <ul className="space-y-3.5 text-xs sm:text-sm text-slate-300">
+                    <li className="flex items-start gap-2.5">
+                      <Sparkles className="w-4 h-4 text-pink-400 flex-shrink-0 mt-0.5" />
+                      <span><b>Hyper-Personalized Styling:</b> Pick retro glitter patterns, custom borders, Google fonts, or write raw CSS.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <Music className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <span><b>Profile Soundtrack:</b> A custom track greets visitors automatically with animated cassette reels.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <Users className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                      <span><b>The Iconic Top 8:</b> You celebrate your real inner circle — no vanity metrics or follower counts.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <MessageSquare className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <span><b>Wall Blurbs &amp; Guestbooks:</b> Permanent comments, PC4PC, and digital stickers from real visitors.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Core Features: Nostalgia Meets Modern Web Standards */}
+          <section className="py-20 border-b border-slate-800">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+              <div className="text-center space-y-3 max-w-2xl mx-auto">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
+                  <Star className="w-3.5 h-3.5" />
+                  <span>Features That Matter</span>
+                </div>
+                <h2 className="text-2xl sm:text-4xl font-black text-white">
+                  Everything You Loved, Supercharged
+                </h2>
+                <p className="text-slate-400 text-sm sm:text-base">
+                  Built on Next.js 16 and modern CSS standards so your custom layouts look stunning on desktop and mobile alike.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
+                    <Palette className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">Dual Customizer Studio</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Tweak colors, card opacities, font pairings, and borders with our intuitive visual token picker — or switch to the code tab to write unrestricted raw CSS.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                    <Music className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">Profile Jukebox</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Set the vibe before visitors even read a word. Embed tracks with interactive spinning reels, animated equalizers, and audio controls.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">The Sacred Top 8</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Remember negotiating with your friends for the #1 spot? Hand-pick your top connections, assign roles, and celebrate the people who matter.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">Vintage Patterns &amp; Glows</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Starfields, glitter particles, retro horizons, CRT scanlines, and bevel borders. Every aesthetic from 1999 to 2008 is just one click away.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <MessageSquare className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">Friend Blurbs &amp; Comments</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    A permanent visitor wall for your digital home. Receive messages, compliments on your layout, and &ldquo;Thanks for the add!&rdquo; greetings.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-gradient-to-b from-blue-950/40 to-slate-900 border border-blue-500/30 space-y-3">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                    <Heart className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-1.5">
+                    My Pics &amp; Recent Visitors
                   </h3>
-                  <p className="text-xs text-indigo-300">Hyper-expressive, music-driven, genuinely social</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Show off your favorite Polaroid snapshots in your photo gallery and see who stopped by to check out your profile!
+                  </p>
                 </div>
               </div>
-
-              <ul className="space-y-3.5 text-xs sm:text-sm text-slate-300">
-                <li className="flex items-start gap-2.5">
-                  <Sparkles className="w-4 h-4 text-pink-400 flex-shrink-0 mt-0.5" />
-                  <span><b>Hyper-Personalized Styling:</b> Pick retro glitter patterns, custom borders, Google fonts, or write raw CSS.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <Music className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-                  <span><b>Profile Soundtrack:</b> A custom track greets visitors automatically with animated cassette reels.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <Users className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
-                  <span><b>The Iconic Top 8:</b> You celebrate your real inner circle — no vanity metrics or follower counts.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <MessageSquare className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  <span><b>Wall Blurbs & Guestbooks:</b> Permanent comments, PC4PC, and digital stickers from real visitors.</span>
-                </li>
-              </ul>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* Core Features: Nostalgia Meets Modern Web Standards */}
-      <section className="py-20 border-b border-slate-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
-              <Star className="w-3.5 h-3.5" />
-              <span>Features That Matter</span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-black text-white">
-              Everything You Loved, Supercharged
-            </h2>
-            <p className="text-slate-400 text-sm sm:text-base">
-              Built on Next.js 16 and modern CSS standards so your custom layouts look stunning on desktop and mobile alike.
-            </p>
-          </div>
+          {/* Featured Community Member Profiles & Live Retro Wall */}
+          <section className="py-20 border-b border-slate-800 bg-slate-950/40">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+              <ActivityFeed limit={6} />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Feature 1: Raw CSS & Visual Studio */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
-                <Palette className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white">Dual Customizer Studio</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Tweak colors, card opacities, font pairings, and borders with our intuitive visual token picker — or switch to the code tab to write unrestricted raw CSS.
-              </p>
-            </div>
-
-            {/* Feature 2: Profile Jukebox */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-                <Music className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white">Profile Jukebox</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Set the vibe before visitors even read a word. Embed tracks with interactive spinning reels, animated equalizers, and audio controls.
-              </p>
-            </div>
-
-            {/* Feature 3: Drag & Drop Blocks */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-                <Users className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white">The Sacred Top 8</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Remember negotiating with your friends for the #1 spot? Hand-pick your top connections, assign roles, and celebrate the people who matter.
-              </p>
-            </div>
-
-            {/* Feature 4: Retro Patterns */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white">Vintage Patterns & Glows</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Starfields, glitter particles, retro horizons, CRT scanlines, and bevel borders. Every aesthetic from 1999 to 2008 is just one click away.
-              </p>
-            </div>
-
-            {/* Feature 5: Real Guestbook */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <MessageSquare className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white">Friend Blurbs & Comments</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                A permanent visitor wall for your digital home. Receive messages, compliments on your layout, and &ldquo;Thanks for the add!&rdquo; greetings.
-              </p>
-            </div>
-
-            {/* Feature 6: Polaroid Photo Albums & Recent Visitors */}
-            <div className="p-6 rounded-2xl bg-gradient-to-b from-blue-950/40 to-slate-900 border border-blue-500/30 space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                <Heart className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-1.5">
-                My Pics &amp; Recent Visitors
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Show off your favorite Polaroid snapshots in your photo gallery and see who stopped by to check out your profile!
-              </p>
-              {isAdmin && (
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                  <span className="text-xs font-mono uppercase tracking-wider text-pink-400 font-bold">
+                    Community Showcase
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">
+                    Explore What People Are Building
+                  </h2>
+                </div>
                 <Link
-                  href="/technology"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 pt-1"
+                  href="/editor?user=glitterqueen99"
+                  className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
                 >
-                  Admin: View Security Architecture &rarr;
+                  Open Theme Studio &rarr;
                 </Link>
-              )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/70 hover:border-blue-500/50 transition-all flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="https://github.com/kevingkday.png"
+                    alt="Kevin"
+                    className="w-20 h-20 rounded-xl object-cover border-2 border-blue-500 shadow-lg flex-shrink-0"
+                  />
+                  <div className="flex-1 space-y-2 text-center sm:text-left">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <h4 className="font-black text-white text-base">Kevin</h4>
+                      <span className="text-xs font-mono text-slate-400">@kevin</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono">
+                        Classic 2006 Blue
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      &ldquo;Building the friendly web since 2003. Everyone&apos;s first friend!&rdquo;
+                    </p>
+                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <Link
+                        href="/user/kevin"
+                        className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors"
+                      >
+                        View Profile
+                      </Link>
+                      <Link
+                        href="/signup"
+                        className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+                      >
+                        Claim Your Handle
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/70 hover:border-pink-500/50 transition-all flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/avatars/glitterqueen.jpg"
+                    alt="glitterqueen99"
+                    className="w-20 h-20 rounded-xl object-cover border-2 border-pink-500 shadow-lg flex-shrink-0"
+                  />
+                  <div className="flex-1 space-y-2 text-center sm:text-left">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <h4 className="font-black text-white text-base">xX_Glitter_Star_Xx</h4>
+                      <span className="text-xs font-mono text-slate-400">@glitterqueen99</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 font-mono">
+                        Scene Queen 2007
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      &ldquo;Rawr means I love you in dinosaur!! xD Leave a comment or get deleted from my top 8!&rdquo;
+                    </p>
+                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <Link
+                        href="/user/glitterqueen99"
+                        className="px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-xs font-bold transition-colors"
+                      >
+                        View Profile
+                      </Link>
+                      <Link
+                        href="/editor?user=glitterqueen99"
+                        className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+                      >
+                        Remix Theme
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* Featured Community Member Profiles & Live Retro Wall */}
-      <section className="py-20 border-b border-slate-800 bg-slate-950/40">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          {/* Global Activity Feed ("The Retro Wall / Activity Log") */}
-          <ActivityFeed limit={6} />
+          {/* Final Call to Action */}
+          <section className="py-20 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-tr from-purple-950/30 via-slate-950 to-pink-950/20 -z-10" />
 
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              <span className="text-xs font-mono uppercase tracking-wider text-pink-400 font-bold">
-                Community Showcase
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">
-                Explore What People Are Building
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
+                <Sparkles className="w-4 h-4 text-pink-400" />
+                <span>Claim Your Spot in the Expressive Web</span>
+              </div>
+
+              <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight">
+                Stop Scrolling Boring Feeds. <br />
+                <span className="bg-gradient-to-r from-pink-400 via-purple-300 to-cyan-400 bg-clip-text text-transparent">
+                  Start Designing Your Space.
+                </span>
               </h2>
-            </div>
-            <Link
-              href="/editor?user=glitterqueen99"
-              className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
-            >
-              Open Theme Studio &rarr;
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Tom / Kevin */}
-            <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/70 hover:border-blue-500/50 transition-all flex flex-col sm:flex-row items-center sm:items-start gap-5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://github.com/kevingkday.png"
-                alt="Kevin"
-                className="w-20 h-20 rounded-xl object-cover border-2 border-blue-500 shadow-lg flex-shrink-0"
-              />
-              <div className="flex-1 space-y-2 text-center sm:text-left">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <h4 className="font-black text-white text-base">Kevin</h4>
-                  <span className="text-xs font-mono text-slate-400">@kevin</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono">
-                    Classic 2006 Blue
-                  </span>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  &ldquo;Building the friendly web since 2003. Everyone&apos;s first friend!&rdquo;
-                </p>
-                <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <Link
-                    href="/user/kevin"
-                    className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors"
-                  >
-                    View Profile
-                  </Link>
-                  <Link
-                    href="/signup"
-                    className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
-                  >
-                    Claim Your Handle
-                  </Link>
-                </div>
+              <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto">
+                Reserve your handle in seconds. Pick your favorite background pattern, add your profile track, and invite your friends.
+              </p>
+
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
+                <Link
+                  href="/signup"
+                  className="px-8 py-4 rounded-xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-pink-500/25 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+                >
+                  <span>Build Your Profile Now</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
             </div>
-
-            {/* Glitter Queen */}
-            <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/70 hover:border-pink-500/50 transition-all flex flex-col sm:flex-row items-center sm:items-start gap-5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/avatars/glitterqueen.jpg"
-                alt="glitterqueen99"
-                className="w-20 h-20 rounded-xl object-cover border-2 border-pink-500 shadow-lg flex-shrink-0"
-              />
-              <div className="flex-1 space-y-2 text-center sm:text-left">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <h4 className="font-black text-white text-base">xX_Glitter_Star_Xx</h4>
-                  <span className="text-xs font-mono text-slate-400">@glitterqueen99</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 font-mono">
-                    Scene Queen 2007
-                  </span>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  &ldquo;Rawr means I love you in dinosaur!! xD Leave a comment or get deleted from my top 8!&rdquo;
-                </p>
-                <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <Link
-                    href="/user/glitterqueen99"
-                    className="px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-xs font-bold transition-colors"
-                  >
-                    View Profile
-                  </Link>
-                  <Link
-                    href="/editor?user=glitterqueen99"
-                    className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
-                  >
-                    Remix Theme
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Final Call to Action */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-purple-950/30 via-slate-950 to-pink-950/20 -z-10" />
-
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
-            <Sparkles className="w-4 h-4 text-pink-400" />
-            <span>Claim Your Spot in the Expressive Web</span>
-          </div>
-
-          <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight">
-            Stop Scrolling Boring Feeds. <br />
-            <span className="bg-gradient-to-r from-pink-400 via-purple-300 to-cyan-400 bg-clip-text text-transparent">
-              Start Designing Your Space.
-            </span>
-          </h2>
-
-          <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto">
-            Reserve your handle in seconds. Pick your favorite background pattern, add your profile track, and invite your friends.
-          </p>
-
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/signup"
-              className="px-8 py-4 rounded-xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-pink-500/25 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
-            >
-              <span>Build Your Profile Now</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            {isAdmin && (
-              <Link
-                href="/technology"
-                className="px-6 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-sm border border-slate-700 transition-colors flex items-center gap-2"
-              >
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Admin: Sandbox Architecture</span>
-              </Link>
-            )}
-          </div>
-        </div>
-      </section>
+          </section>
+        </>
+      )}
 
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-800 bg-slate-950 py-10">
@@ -985,7 +1086,7 @@ export default function HomePage() {
 
           <div className="flex flex-wrap items-center gap-6 text-xs text-slate-400">
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
-            <Link href="/editor?user=glitterqueen99" className="hover:text-white transition-colors">Theme Studio</Link>
+            <Link href={currentUser ? `/editor?user=${currentUser}` : '/editor?user=glitterqueen99'} className="hover:text-white transition-colors">Theme Studio</Link>
             <Link href="/user/kevin" className="hover:text-white transition-colors">Member Profiles</Link>
             {isAdmin && (
               <Link href="/technology" className="hover:text-white transition-colors">Tech &amp; Security</Link>
