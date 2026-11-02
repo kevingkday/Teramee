@@ -190,7 +190,7 @@ export function StudioAIAssistant({
                   Available MCP Servers &amp; Widgets
                 </span>
                 <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  1 Live
+                  2 Live
                 </span>
                 <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-slate-800 text-slate-400 border border-slate-700">
                   2 Soon
@@ -203,7 +203,7 @@ export function StudioAIAssistant({
 
             {showMcpCatalog && (
               <div className="p-3 space-y-2.5 border-t border-slate-800/80 text-xs">
-                {/* Active Server: Open-Meteo Weather MCP */}
+                {/* Active Server 1: Open-Meteo Weather MCP */}
                 <div className="p-2.5 rounded-lg bg-slate-950/90 border border-emerald-500/30 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5">
@@ -259,6 +259,27 @@ export function StudioAIAssistant({
                       {existingWeatherBlock ? 'Update City' : '+ Add Widget'}
                     </button>
                   </form>
+                </div>
+
+                {/* Active Server 2: Profile Soundtrack Search MCP */}
+                <div className="p-2.5 rounded-lg bg-slate-950/90 border border-cyan-500/30 flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <Music className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-white text-[11px] flex items-center gap-1.5">
+                        <span>Profile Soundtrack Search MCP</span>
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          ONLINE
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Search Spotify, YouTube, or Apple Music directly in the{' '}
+                        <strong className="text-slate-200">Profile Soundtrack</strong> box above. Tools:{' '}
+                        <code className="text-cyan-300">search_songs</code> &amp;{' '}
+                        <code className="text-cyan-300">select_song</code>
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Coming Soon MCP Servers so users know the roadmap */}
