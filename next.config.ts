@@ -4,6 +4,9 @@ const isStaticExport = process.env.CF_EXPORT === "1";
 
 const nextConfig: NextConfig = {
   ...(isStaticExport ? { output: "export" } : {}),
+  experimental: {
+    agentUpgrade: "security",
+  },
   turbopack: {
     rules: {
       "*.css": {

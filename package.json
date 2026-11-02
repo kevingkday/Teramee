@@ -16,7 +16,7 @@
   "dependencies": {
     "css-tree": "^3.2.1",
     "lucide-react": "^1.56.0",
-    "next": "16.4.0",
+    "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "sanitize-html": "^2.17.5"
@@ -29,7 +29,7 @@
     "@types/react-dom": "^19",
     "@types/sanitize-html": "^2.16.2",
     "eslint": "^9",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "^4.151.0"
