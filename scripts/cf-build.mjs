@@ -16,8 +16,6 @@ function moveDirSync(src, dest) {
   }
 }
 
-let moved = false;
-
 try {
   if (fs.existsSync(nextDevTypesDir)) {
     fs.rmSync(nextDevTypesDir, { recursive: true, force: true });
@@ -27,7 +25,6 @@ try {
       fs.rmSync(backupDir, { recursive: true, force: true });
     }
     moveDirSync(apiDir, backupDir);
-    moved = true;
   }
 
   try {
@@ -41,8 +38,35 @@ try {
       env: { ...process.env, CF_EXPORT: '1' }
     });
   }
+
+  // next/og emits extensionless PNG files. Cloudflare otherwise sniffs them as
+  // a generic type, which drops the image out of link previews.
+  fs.writeFileSync(
+    path.join(rootDir, 'out', '_headers'),
+    `/opengraph-image
+  Content-Type: image/png
+  Cache-Control: public, max-age=86400
+
+/twitter-image
+  Content-Type: image/png
+  Cache-Control: public, max-age=86400
+
+/user/*/opengraph-image
+  Content-Type: image/png
+  Cache-Control: public, max-age=86400
+
+/user/*/twitter-image
+  Content-Type: image/png
+  Cache-Control: public, max-age=86400
+`
+  );
 } finally {
-  if (moved && fs.existsSync(backupDir)) {
+  // Always put the dev API routes back, including after a build that was
+  // interrupted while `src/app/api` was parked in `src/_api_dev_only`.
+  if (fs.existsSync(backupDir)) {
+    if (fs.existsSync(apiDir)) {
+      fs.rmSync(apiDir, { recursive: true, force: true });
+    }
     moveDirSync(backupDir, apiDir);
   }
 }

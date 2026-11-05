@@ -12,7 +12,14 @@
   "assets": {
     "directory": "out",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
+    // Unknown URLs must be HTTP 404, not the homepage. "single-page-application"
+    // served index.html with status 200 for every missing asset.
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash",
+    // Navigation requests (compatibility date >= 2025-04-01) are served from
+    // assets before the worker. These paths still need the worker: APIs,
+    // profile existence checks (including /@handle), and the live sitemap.
+    "run_worker_first": ["/api/*", "/user/*", "/@*", "/%40*", "/sitemap.xml", "/profile-shell"]
   },
   "observability": {
     "enabled": true

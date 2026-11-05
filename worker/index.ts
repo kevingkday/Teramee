@@ -34,6 +34,7 @@ import {
   runStudioAssistantWithMcp,
   CloudflareAIBinding
 } from './mcp/assistant';
+import { handleSeoRequest } from './seo';
 
 export interface Env {
   DB: D1Database;
@@ -826,14 +827,15 @@ export default {
       }
     }
 
-    // Fallback to Cloudflare Static Assets
+    // Profile 404s, /@handle aliases, dynamic share images, and sitemap.xml.
+    // Missing /user/* pages used to be rewritten to /user/kevin (HTTP 200).
+    const seoResponse = await handleSeoRequest(request, env, pathname);
+    if (seoResponse) return seoResponse;
+
+    // Fallback to Cloudflare Static Assets. With not_found_handling "404-page",
+    // a miss returns out/404.html and status 404 instead of the homepage.
     if (env.ASSETS && typeof env.ASSETS.fetch === 'function') {
-      const assetRes = await env.ASSETS.fetch(request);
-      if (assetRes.status === 404 && pathname.startsWith('/user/')) {
-        const fallbackUrl = new URL('/user/kevin', request.url);
-        return env.ASSETS.fetch(new Request(fallbackUrl.toString(), request));
-      }
-      return assetRes;
+      return env.ASSETS.fetch(request);
     }
 
     return new Response('Not Found', { status: 404 });

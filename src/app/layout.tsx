@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import Script from 'next/script';
+import { SITE_DESCRIPTION, SITE_NAME, SITE_ORIGIN, SITE_TITLE } from '@/lib/seo';
 import './globals.css';
 
 const geistSans = Geist({
@@ -14,8 +15,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Teramee | Your Space, Your Sound, Your Rules',
-  description: 'The modern expressive social web. Customize your digital space with custom CSS, music players, Top 8 connections, and retro aesthetics with bulletproof sandboxing.',
+  metadataBase: new URL(SITE_ORIGIN),
+  title: {
+    default: SITE_TITLE,
+    template: '%s'
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    locale: 'en_US',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: '/'
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION
+  }
 };
 
 export default function RootLayout({

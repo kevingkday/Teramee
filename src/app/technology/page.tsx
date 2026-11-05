@@ -1,5 +1,7 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { DEFAULT_SHARE_IMAGE, SITE_NAME } from '@/lib/seo';
 import { PlatformNavbar } from '@/components/PlatformNavbar';
 import {
   ShieldCheck,
@@ -16,9 +18,26 @@ import {
   Sparkles
 } from 'lucide-react';
 
-export const metadata = {
-  title: 'Technology & Security Architecture | Teramee',
-  description: 'How Teramee enables full raw CSS customization with zero platform bleed and bulletproof browser sandboxing.',
+const title = 'Technology & Security Architecture | Teramee';
+const description =
+  'How Teramee enables full raw CSS customization with zero platform bleed and bulletproof browser sandboxing.';
+
+export const metadata: Metadata = {
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    url: '/technology',
+    siteName: SITE_NAME,
+    images: [DEFAULT_SHARE_IMAGE]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title,
+    description,
+    images: ['/twitter-image']
+  }
 };
 
 export default function TechnologyPage() {

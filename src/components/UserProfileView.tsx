@@ -3,11 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { UserProfile } from '@/lib/types';
 import { INITIAL_PROFILES } from '@/lib/initial-profiles';
+import { useProfileHandle } from '@/components/useProfileHandle';
 import { sanitizeAndScopeCss } from '@/lib/sanitize-css';
 import { PlatformNavbar } from '@/components/PlatformNavbar';
 import { ProfileCanvas } from '@/components/ProfileCanvas';
 import Link from 'next/link';
-import { Palette, ShieldCheck, ArrowLeft, Lock } from 'lucide-react';
+import { Palette, ArrowLeft, Lock } from 'lucide-react';
 
 interface UserProfileViewProps {
   initialProfile: UserProfile | null;
@@ -15,11 +16,11 @@ interface UserProfileViewProps {
 }
 
 export function UserProfileView({ initialProfile, username }: UserProfileViewProps) {
-  const [effectiveUsername, setEffectiveUsername] = useState<string>(
-    username.toLowerCase() === 'tom' ? 'kevin' : username.toLowerCase()
-  );
+  const seededUsername = username ? (username.toLowerCase() === 'tom' ? 'kevin' : username.toLowerCase()) : '';
+  const pathHandle = useProfileHandle();
+  const effectiveUsername = pathHandle || seededUsername;
   const [profile, setProfile] = useState<UserProfile | null>(
-    initialProfile || INITIAL_PROFILES[effectiveUsername] || null
+    initialProfile || (seededUsername ? INITIAL_PROFILES[seededUsername] || null : null)
   );
   const [loading, setLoading] = useState<boolean>(!profile);
   const [error, setError] = useState<string | null>(null);
@@ -27,20 +28,7 @@ export function UserProfileView({ initialProfile, username }: UserProfileViewPro
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const match = window.location.pathname.match(/^\/user\/([^/]+)/);
-      if (match && match[1]) {
-        const pathUser = decodeURIComponent(match[1]).toLowerCase();
-        const resolved = pathUser === 'tom' ? 'kevin' : pathUser;
-        if (resolved !== effectiveUsername) {
-          setEffectiveUsername(resolved);
-          setProfile(INITIAL_PROFILES[resolved] || null);
-        }
-      }
-    }
-  }, [effectiveUsername]);
-
-  useEffect(() => {
+    if (!effectiveUsername) return;
     let isCancelled = false;
 
     fetch('/api/auth/me')
@@ -99,19 +87,24 @@ export function UserProfileView({ initialProfile, username }: UserProfileViewPro
     };
   }, [effectiveUsername]);
 
-  if (loading && !profile) {
+  const waitingForPath = !seededUsername && pathHandle === undefined;
+  const missingHandle = !seededUsername && pathHandle === null;
+
+  if (waitingForPath || (loading && !profile && Boolean(effectiveUsername))) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col">
         <PlatformNavbar currentUsername="kevin" />
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-xs text-slate-400 font-mono">Loading @{effectiveUsername}&apos;s profile...</p>
+          <p className="text-xs text-slate-400 font-mono">
+            {effectiveUsername ? `Loading @${effectiveUsername}'s profile...` : 'Loading profile...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (error || !profile) {
+  if (missingHandle || error || !profile) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col">
         <PlatformNavbar currentUsername="kevin" />
@@ -121,7 +114,9 @@ export function UserProfileView({ initialProfile, username }: UserProfileViewPro
           </div>
           <h1 className="text-2xl font-black mb-2">Profile Not Found</h1>
           <p className="text-slate-400 text-sm max-w-md mb-6">
-            The profile &ldquo;@{effectiveUsername}&rdquo; does not exist or may have been deleted into cyberspace.
+            {effectiveUsername
+              ? `The profile “@${effectiveUsername}” does not exist or may have been deleted into cyberspace.`
+              : 'This profile does not exist or may have been deleted into cyberspace.'}
           </p>
           <Link
             href="/user/kevin"
